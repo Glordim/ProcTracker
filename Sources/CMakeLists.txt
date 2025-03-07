@@ -32,8 +32,6 @@ list(APPEND Srcs ${GeneratedFileH})
 list(APPEND Includes ${GeneratedFileH})
 list(APPEND Srcs ${GeneratedFileCPP})
 
-message(STATUS ${Srcs})
-
 assign_source_group(${Srcs}) # for VS
 
 add_executable(ProcTracker ${Srcs} ${Includes})

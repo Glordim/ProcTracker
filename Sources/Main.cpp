@@ -10,8 +10,25 @@
 #include "Font/MaterialDesignIcons.ttf.hpp"
 #include "Font/IconsMaterialDesignIcons.h"
 
+#include "OS.hpp"
+#include "SystemWatcher.hpp"
+#include "Process.hpp"
+
+#include <functional>
+
 int	main(int argc, char** argv)
 {
+	if (OS::Init() == false)
+	{
+		return -1;
+	}
+
+	SystemWatcher systemWatcher;
+	if (systemWatcher.Init() == false)
+	{
+		return -1;
+	}
+
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD) != 0)
 	{
 		printf("Error: SDL_Init(): %s\n", SDL_GetError());
@@ -81,6 +98,26 @@ int	main(int argc, char** argv)
 	static char processName[4096] = { '\0' };
 	std::strcpy(processName, "ProcTracker");
 
+	std::vector<Process*> processes;
+	std::function<void(uint64_t)> onProcessCreated([&processes](uint64_t pid)
+	{
+		processes.push_back(new Process(pid));
+	});
+	std::function<void(uint64_t)> onProcessTerminated([&processes](uint64_t pid)
+	{
+		for (size_t i = 0; i < processes.size(); ++i)
+		{
+			Process* process = processes[i];
+			if (process->GetPid() == pid)
+			{
+				processes.erase(processes.begin() + i);
+				delete process;
+				break;
+			}
+		}
+	});
+	systemWatcher.StartWatch(processName, onProcessCreated, onProcessTerminated);
+
 	bool exit = false;
 	while (exit == false)
 	{
@@ -115,7 +152,21 @@ int	main(int argc, char** argv)
 			ImGui::TextUnformatted("Process Name");
 			ImGui::SameLine();
 			ImGui::SetNextItemWidth(-1);
-			ImGui::InputText("##ProcessName", processName, sizeof(processName));
+			if (ImGui::InputText("##ProcessName", processName, sizeof(processName), ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				systemWatcher.StopWatch();
+				for (Process* process : processes)
+				{
+					delete process;
+				}
+				processes.clear();
+				systemWatcher.StartWatch(processName, onProcessCreated, onProcessTerminated);
+			}
+
+			for (Process* process : processes)
+			{
+				ImGui::Text("%ji", process->GetPid());
+			}
 		}
 		ImGui::End();
 
@@ -162,11 +213,14 @@ int	main(int argc, char** argv)
 	ImGui_ImplSDLGPU3_Shutdown();
 	ImPlot::DestroyContext();
 	ImGui::DestroyContext();
-
+	
 	SDL_ReleaseWindowFromGPUDevice(gpu_device, window);
 	SDL_DestroyGPUDevice(gpu_device);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
+	
+	systemWatcher.Terminate();
+	OS::Terminate();
 
 	return 0;
 }
