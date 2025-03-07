@@ -6,8 +6,8 @@
 #include "DearImGui/backends/imgui_impl_sdlgpu3.h"
 #include <SDL3/SDL.h>
 
-#include "Font/Generated/Roboto-Regular.ttf.hpp"
-#include "Font/Generated/MaterialDesignIcons.ttf.hpp"
+#include "Font/Roboto-Regular.ttf.hpp"
+#include "Font/MaterialDesignIcons.ttf.hpp"
 #include "Font/IconsMaterialDesignIcons.h"
 
 int	main(int argc, char** argv)

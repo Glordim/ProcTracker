@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.4...3.27)
 
-function(EmbedTextInSource InputFile TemplateFile OutputDir OutputFile)
+function(EmbedTextInSource InputFile TemplateFile OutputDir OutOutputFileH)
 
 	get_filename_component(FILENAME "${InputFile}" NAME)
+	set(OutputFileH "${OutputDir}/${FILENAME}.hpp")
+	set(${OutOutputFileH} "${OutputFileH}" PARENT_SCOPE)
+
 	message(STATUS "EmbedBinaryInSource: ${InputFile} -> ${OutputDir}/${FILENAME}.hpp")
 
 	string(REGEX REPLACE "\\.| |-" "_" ESCAPED_FILE_NAME ${FILENAME})
@@ -11,7 +14,6 @@ function(EmbedTextInSource InputFile TemplateFile OutputDir OutputFile)
 	string(REPLACE "\"" "\\\"" ESCAPED_FILE_CONTENTS "${FILE_CONTENTS}")
 	string(REPLACE "\n" "\\n\"\n\"" ESCAPED_FILE_CONTENTS "${ESCAPED_FILE_CONTENTS}")
 
-	set(${OutputFileH} ${OutputDir}/${FILENAME}.hpp PARENT_SCOPE)
 	configure_file(
 		${TemplateFile}
 		${OutputFileH}
@@ -19,25 +21,28 @@ function(EmbedTextInSource InputFile TemplateFile OutputDir OutputFile)
 	)
 endfunction()
 
-function(EmbedBinaryInSource InputFile TemplateFileH TemplateFileCPP OutputDir OutputFileH OutputFileCPP)
+function(EmbedBinaryInSource InputFile TemplateFileH TemplateFileCPP OutputDir OutOutputFileH OutOutputFileCPP)
 
 	get_filename_component(FILENAME "${InputFile}" NAME)
-	message(STATUS "EmbedBinaryInSource: ${InputFile} -> ${OutputDir}/${FILENAME}.cpp and ${OutputDir}/${FILENAME}.hpp")
+
+	set(OutputFileH "${OutputDir}/${FILENAME}.hpp")
+	set(OutputFileCPP "${OutputDir}/${FILENAME}.cpp")
+	set(${OutOutputFileH} "${OutputFileH}" PARENT_SCOPE)
+	set(${OutOutputFileCPP} "${OutputFileCPP}" PARENT_SCOPE)
+
+	message(STATUS "EmbedBinaryInSource: ${InputFile} -> ${OutputFileCPP} and ${OutputFileH}")
 
 	string(REGEX REPLACE "\\.| |-" "_" ESCAPED_FILE_NAME ${FILENAME})
 
 	file(READ "${InputFile}" FILE_CONTENTS HEX)
 	string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," ESCAPED_FILE_CONTENTS ${FILE_CONTENTS}) # Convert hex data for C compatibility
 
-	set(${OutputFileH} ${OutputDir}/${FILENAME}.hpp PARENT_SCOPE)
 	configure_file(
 		${TemplateFileH}
 		${OutputFileH}
 		@ONLY
 	)
-	set(${IncludesVar} ${Includes} PARENT_SCOPE)
 
-	set(${OutputFileCPP} ${OutputDir}/${FILENAME}.cpp PARENT_SCOPE)
 	configure_file(
 		${TemplateFileCPP}
 		${OutputFileCPP}
