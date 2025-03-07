@@ -10,10 +10,6 @@ struct IWbemObjectSink;
 
 class SystemWatcher final
 {
-#if _WIN32
-	friend class SystemWatcherWbemSink;
-#endif
-
 public:
 
 	~SystemWatcher();
@@ -23,11 +19,6 @@ public:
 
 	bool	StartWatch(std::string_view processName, const std::function<void(uint64_t)>& onProcessCreated, const std::function<void(uint64_t)>& onProcessTerminated);
 	void	StopWatch();
-
-private:
-
-	void	NotifyOnProcessCreated(uint64_t pid);
-	void	NotifyOnProcessTerminated(uint64_t pid);
 
 private:
 
