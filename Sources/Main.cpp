@@ -27,7 +27,7 @@ int	main(int argc, char** argv)
 	}
 
 	// Create GPU Device
-	SDL_GPUDevice* gpu_device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_METALLIB,true,nullptr);
+	SDL_GPUDevice* gpu_device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_METALLIB, false, nullptr);
 	if (gpu_device == nullptr)
 	{
 		printf("Error: SDL_CreateGPUDevice(): %s\n", SDL_GetError());
@@ -78,6 +78,9 @@ int	main(int argc, char** argv)
 	init_info.MSAASamples = SDL_GPU_SAMPLECOUNT_1;
 	ImGui_ImplSDLGPU3_Init(&init_info);
 
+	static char processName[4096] = { '\0' };
+	std::strcpy(processName, "ProcTracker");
+
 	bool exit = false;
 	while (exit == false)
 	{
@@ -103,6 +106,18 @@ int	main(int argc, char** argv)
 		ImGui_ImplSDLGPU3_NewFrame();
 		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
+
+		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+		ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+		if (ImGui::Begin("Tmp", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize))
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::TextUnformatted("Process Name");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(-1);
+			ImGui::InputText("##ProcessName", processName, sizeof(processName));
+		}
+		ImGui::End();
 
 		static bool show_demo_window = true;
 		ImGui::ShowDemoWindow(&show_demo_window);
