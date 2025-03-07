@@ -15,6 +15,7 @@
 #include "Process.hpp"
 
 #include <functional>
+#include <mutex>
 
 int	main(int argc, char** argv)
 {
@@ -98,13 +99,17 @@ int	main(int argc, char** argv)
 	static char processName[4096] = { '\0' };
 	std::strcpy(processName, "ProcTracker");
 
+	std::mutex processesLock;
 	std::vector<Process*> processes;
-	std::function<void(uint64_t)> onProcessCreated([&processes](uint64_t pid)
+	std::function<void(uint64_t)> onProcessCreated([&processesLock, &processes](uint64_t pid)
 	{
+		processesLock.lock();
 		processes.push_back(new Process(pid));
+		processesLock.unlock();
 	});
-	std::function<void(uint64_t)> onProcessTerminated([&processes](uint64_t pid)
+	std::function<void(uint64_t)> onProcessTerminated([&processesLock, &processes](uint64_t pid)
 	{
+		processesLock.lock();
 		for (size_t i = 0; i < processes.size(); ++i)
 		{
 			Process* process = processes[i];
@@ -115,6 +120,7 @@ int	main(int argc, char** argv)
 				break;
 			}
 		}
+		processesLock.unlock();
 	});
 	systemWatcher.StartWatch(processName, onProcessCreated, onProcessTerminated);
 
@@ -163,10 +169,12 @@ int	main(int argc, char** argv)
 				systemWatcher.StartWatch(processName, onProcessCreated, onProcessTerminated);
 			}
 
+			processesLock.lock();
 			for (Process* process : processes)
 			{
 				ImGui::Text("%ji", process->GetPid());
 			}
+			processesLock.unlock();
 		}
 		ImGui::End();
 
