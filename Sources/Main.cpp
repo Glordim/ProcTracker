@@ -1,6 +1,7 @@
 #include "Pch.hpp"
 
 #include "DearImGui/imgui.h"
+#include "DearImGui/ImPlot/implot.h"
 #include "DearImGui/backends/imgui_impl_sdl3.h"
 #include "DearImGui/backends/imgui_impl_sdlgpu3.h"
 #include <SDL3/SDL.h>
@@ -46,6 +47,7 @@ int	main(int argc, char** argv)
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
+	ImPlot::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
@@ -145,6 +147,7 @@ int	main(int argc, char** argv)
 	SDL_WaitForGPUIdle(gpu_device);
 	ImGui_ImplSDL3_Shutdown();
 	ImGui_ImplSDLGPU3_Shutdown();
+	ImPlot::DestroyContext();
 	ImGui::DestroyContext();
 
 	SDL_ReleaseWindowFromGPUDevice(gpu_device, window);
