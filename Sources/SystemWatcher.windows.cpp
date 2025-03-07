@@ -165,6 +165,38 @@ bool SystemWatcher::StartWatch(std::string_view processName, const std::function
 		return false;
 	}
 
+	IEnumWbemClassObject* enumerator = NULL;
+	request = std::format("SELECT * FROM Win32_Process WHERE Name = '{}.exe'", processName);
+	hres = _services->ExecQuery(_bstr_t("WQL"), _bstr_t(request.c_str()), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
+	if (FAILED(hres))
+	{
+		std::cerr << "SystemWatcher: Unable to execute WMI request" << std::endl;
+		return false;
+	}
+	IWbemClassObject *pclsObj = NULL;
+	ULONG uReturn = 0;
+
+	while (enumerator)
+	{
+		hres = enumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
+		if (uReturn == 0)
+			break;
+
+		VARIANT varName, varPid;
+		VariantInit(&varName);
+		VariantInit(&varPid);
+		if (SUCCEEDED(pclsObj->Get(L"Name", 0, &varName, 0, 0)) && SUCCEEDED(pclsObj->Get(L"ProcessId", 0, &varPid, 0, 0)))
+		{
+			std::wcout << L"Process : " << varName.bstrVal << L" (PID: " << varPid.uintVal << L")" << std::endl;
+			_onProcessCreated(varPid.uintVal);
+			VariantClear(&varName);
+			VariantClear(&varPid);
+		}
+
+		pclsObj->Release();
+	}
+	enumerator->Release();
+
 	return true;
 }
 
