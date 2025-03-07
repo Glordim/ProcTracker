@@ -12,8 +12,6 @@
 
 int	main(int argc, char** argv)
 {
-	printf("YO\n");
-
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD) != 0)
 	{
 		printf("Error: SDL_Init(): %s\n", SDL_GetError());

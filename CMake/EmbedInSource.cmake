@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.4...3.27)
 
-function(EmbeedTextInSource InputFile TemplateFile OutputDir OutputFile)
+function(EmbedTextInSource InputFile TemplateFile OutputDir OutputFile)
 
 	get_filename_component(FILENAME "${InputFile}" NAME)
-	message(STATUS "EmbeedBinaryInSource: ${InputFile} -> ${OutputDir}/${FILENAME}.hpp")
+	message(STATUS "EmbedBinaryInSource: ${InputFile} -> ${OutputDir}/${FILENAME}.hpp")
 
 	string(REGEX REPLACE "\\.| |-" "_" ESCAPED_FILE_NAME ${FILENAME})
 
@@ -19,10 +19,10 @@ function(EmbeedTextInSource InputFile TemplateFile OutputDir OutputFile)
 	)
 endfunction()
 
-function(EmbeedBinaryInSource InputFile TemplateFileH TemplateFileCPP OutputDir OutputFileH OutputFileCPP)
+function(EmbedBinaryInSource InputFile TemplateFileH TemplateFileCPP OutputDir OutputFileH OutputFileCPP)
 
 	get_filename_component(FILENAME "${InputFile}" NAME)
-	message(STATUS "EmbeedBinaryInSource: ${InputFile} -> ${OutputDir}/${FILENAME}.cpp and ${OutputDir}/${FILENAME}.hpp")
+	message(STATUS "EmbedBinaryInSource: ${InputFile} -> ${OutputDir}/${FILENAME}.cpp and ${OutputDir}/${FILENAME}.hpp")
 
 	string(REGEX REPLACE "\\.| |-" "_" ESCAPED_FILE_NAME ${FILENAME})
 

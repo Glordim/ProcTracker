@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.4...3.27)
 
-include(EmbeedInSource)
+include(EmbedInSource)
 
 if(APPLE)
 	project(ProcTracker LANGUAGES CXX OBJCXX)
@@ -10,9 +10,9 @@ endif()
 
 CollectSourceFiles(${PROJECT_SOURCE_DIR} Srcs Includes)
 
-EmbeedBinaryInSource("Font/Roboto-Regular.ttf"
-	${PROJECT_SOURCE_DIR}/EmbeedInSourceTemplate/BinarySourceFileTemplate.hpp.in
-	${PROJECT_SOURCE_DIR}/EmbeedInSourceTemplate/BinarySourceFileTemplate.cpp.in
+EmbedBinaryInSource("Font/Roboto-Regular.ttf"
+	${PROJECT_SOURCE_DIR}/EmbedInSourceTemplate/BinarySourceFileTemplate.hpp.in
+	${PROJECT_SOURCE_DIR}/EmbedInSourceTemplate/BinarySourceFileTemplate.cpp.in
 	${PROJECT_SOURCE_DIR}/Font/Generated
 	GeneratedFileH
 	GeneratedFileCPP
@@ -21,9 +21,9 @@ list(APPEND Srcs ${GeneratedFileH})
 list(APPEND Includes ${GeneratedFileH})
 list(APPEND Srcs ${GeneratedFileCPP})
 
-EmbeedBinaryInSource("Font/MaterialDesignIcons.ttf"
-	${PROJECT_SOURCE_DIR}/EmbeedInSourceTemplate/BinarySourceFileTemplate.hpp.in
-	${PROJECT_SOURCE_DIR}/EmbeedInSourceTemplate/BinarySourceFileTemplate.cpp.in
+EmbedBinaryInSource("Font/MaterialDesignIcons.ttf"
+	${PROJECT_SOURCE_DIR}/EmbedInSourceTemplate/BinarySourceFileTemplate.hpp.in
+	${PROJECT_SOURCE_DIR}/EmbedInSourceTemplate/BinarySourceFileTemplate.cpp.in
 	${PROJECT_SOURCE_DIR}/Font/Generated
 	GeneratedFileH
 	GeneratedFileCPP
