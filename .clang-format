@@ -1,0 +1,62 @@
+---
+ColumnLimit: 180
+---
+Language: Cpp
+BasedOnStyle: LLVM
+ColumnLimit: 180
+AccessModifierOffset: -4
+AlignArrayOfStructure: Left
+AlignConsecutiveDeclarations:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments:  false
+  AlignCompound:   false
+  PadOperators:    false
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AlwaysBreakTemplateDeclarations: Yes
+BraceWrapping:
+  AfterCaseLabel:  true
+  AfterClass:      true
+  AfterControlStatement: Always
+  AfterEnum:       true
+  AfterExternBlock: true
+  AfterFunction:   true
+  AfterNamespace:  true
+  AfterObjCDeclaration: true
+  AfterStruct:     true
+  AfterUnion:      true
+  BeforeCatch:     true
+  BeforeElse:      true
+  BeforeLambdaBody: true
+  BeforeWhile:     true
+  IndentBraces:    false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+BreakBeforeBraces: Custom
+BreakConstructorInitializers: BeforeComma
+BreakInheritanceList: AfterComma
+ConstructorInitializerIndentWidth: 0
+IndentCaseLabels: true
+IndentWidth: 4
+KeepEmptyLinesAtTheStartOfBlocks: false
+NamespaceIndentation: All
+PackConstructorInitializers: Never
+PointerAlignment: Left
+QualifierAlignment: Left
+RemoveBracesLLVM: true
+RemoveParentheses: ReturnStatement
+RemoveSemicolon: true
+SeparateDefinitionBlocks: Always
+ShortNamespaceLines: 10000000 # todo
+SortIncludes: CaseInsensitive
+SpaceBeforeCpp11BracedList: true
+SpacesInContainerLiterals: false
+Standard: c++20
+TabWidth: 4
+UseTab: AlignWithSpaces
+InsertBraces: true
+RemoveBracesLLVM: false
+---

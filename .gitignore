@@ -1,0 +1,8 @@
+build_*/
+build/
+
+Generated
+
+.vs/
+.vscode/settings.json
+.DS_Store
