@@ -1,14 +1,9 @@
 #pragma once
 
-class Process
+#include <string>
+
+struct Process
 {
-public:
-
-	Process(uint64_t pid);
-
-	uint64_t	GetPid() const;
-
-private:
-
-	const uint64_t _pid;
+	const uint64_t pid;
+	std::string const name;
 };

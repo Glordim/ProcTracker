@@ -47,5 +47,8 @@ include_directories(SYSTEM
 )
 
 target_link_libraries(ProcTracker ${freetype_LIBRARIES} ${SDL_LIBRARIES})
+if(WIN32)
+	target_link_libraries(ProcTracker pdh.lib)
+endif()
 
 target_compile_definitions(ProcTracker PUBLIC ${PLATFORM_DEFINE})

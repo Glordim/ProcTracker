@@ -14,7 +14,7 @@
 class SystemWatcherWbemSink : public IWbemObjectSink
 {
 public:
-	SystemWatcherWbemSink(const std::function<void(uint64_t)>& callback)
+	SystemWatcherWbemSink(const std::function<void(std::string const&, uint64_t)>& callback)
 	: _refCount(1)
 	, _callback(callback)
 	{
@@ -56,7 +56,7 @@ public:
 		{
 			VARIANT var;
 			VariantInit(&var); // Toujours initialiser un VARIANT avant usage
-			
+
 			HRESULT hr = ppObjects[i]->Get(L"TargetInstance", 0, &var, 0, 0);
 			if (SUCCEEDED(hr) && var.vt == VT_UNKNOWN)
 			{
@@ -70,7 +70,10 @@ public:
 					if (SUCCEEDED(pObj->Get(L"Name", 0, &varName, 0, 0)) && SUCCEEDED(pObj->Get(L"ProcessId", 0, &varPid, 0, 0)))
 					{
 						std::wcout << L"New process : " << varName.bstrVal << L" (PID: " << varPid.uintVal << L")" << std::endl;
-						_callback(varPid.uintVal);
+						size_t len = wcstombs(nullptr, varName.bstrVal, 0);
+						std::string nameUtf8(len, '\0');
+						wcstombs(nameUtf8.data(), varName.bstrVal, len);
+						_callback(nameUtf8, varPid.uintVal);
 						VariantClear(&varName);
 						VariantClear(&varPid);
 					}
@@ -91,7 +94,7 @@ public:
 private:
 
 	long							_refCount;
-	std::function<void(uint64_t)>	_callback;
+	std::function<void(std::string const&, uint64_t)>	_callback;
 };
 
 bool SystemWatcher::Init()
@@ -138,7 +141,7 @@ void SystemWatcher::Terminate()
 	}
 }
 
-bool SystemWatcher::StartWatch(std::string_view processName, const std::function<void(uint64_t)>& onProcessCreated, const std::function<void(uint64_t)>& onProcessTerminated)
+bool SystemWatcher::StartWatch(std::string_view processName, const std::function<void(std::string const&, uint64_t)>& onProcessCreated, const std::function<void(uint64_t)>& onProcessTerminated)
 {
 	assert(_services);
 	assert(_createSink == nullptr);
@@ -147,7 +150,7 @@ bool SystemWatcher::StartWatch(std::string_view processName, const std::function
 	_onProcessCreated = onProcessCreated;
 	_onProcessTerminated = onProcessTerminated;
 
-	_createSink = new SystemWatcherWbemSink([this](uint64_t pid) { _onProcessCreated(pid); });
+	_createSink = new SystemWatcherWbemSink([this](std::string const& name, uint64_t pid) { _onProcessCreated(name, pid); });
 	std::string request = std::format("SELECT * FROM __InstanceCreationEvent WITHIN 1 WHERE TargetInstance ISA 'Win32_Process' AND TargetInstance.Name = '{}.exe'", processName);
 	HRESULT hres = _services->ExecNotificationQueryAsync(_bstr_t("WQL"), _bstr_t(request.c_str()), 0, NULL, _createSink);
 	if (FAILED(hres))
@@ -156,7 +159,7 @@ bool SystemWatcher::StartWatch(std::string_view processName, const std::function
 		return false;
 	}
 
-	_terminateSink = new SystemWatcherWbemSink([this](uint64_t pid) { _onProcessTerminated(pid); });
+	_terminateSink = new SystemWatcherWbemSink([this](std::string const& name,uint64_t pid) { _onProcessTerminated(pid); });
 	request = std::format("SELECT * FROM __InstanceDeletionEvent WITHIN 1 WHERE TargetInstance ISA 'Win32_Process' AND TargetInstance.Name = '{}.exe'", processName);
 	hres = _services->ExecNotificationQueryAsync(_bstr_t("WQL"), _bstr_t(request.c_str()), 0, NULL, _terminateSink);
 	if (FAILED(hres))
@@ -188,7 +191,10 @@ bool SystemWatcher::StartWatch(std::string_view processName, const std::function
 		if (SUCCEEDED(pclsObj->Get(L"Name", 0, &varName, 0, 0)) && SUCCEEDED(pclsObj->Get(L"ProcessId", 0, &varPid, 0, 0)))
 		{
 			std::wcout << L"Process : " << varName.bstrVal << L" (PID: " << varPid.uintVal << L")" << std::endl;
-			_onProcessCreated(varPid.uintVal);
+			size_t len = wcstombs(nullptr, varName.bstrVal, 0);
+			std::string nameUtf8(len, '\0');
+			wcstombs(nameUtf8.data(), varName.bstrVal, len);
+			_onProcessCreated(nameUtf8, varPid.uintVal);
 			VariantClear(&varName);
 			VariantClear(&varPid);
 		}

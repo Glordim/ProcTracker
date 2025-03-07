@@ -13,9 +13,12 @@
 #include "OS.hpp"
 #include "SystemWatcher.hpp"
 #include "Process.hpp"
+#include "PerformanceQuery.hpp"
 
+#include <algorithm>
 #include <functional>
 #include <mutex>
+#include <format>
 
 int	main(int argc, char** argv)
 {
@@ -70,6 +73,7 @@ int	main(int argc, char** argv)
 	ImGui::StyleColorsDark();
 
 	ImFontConfig robotoFontConfig;
+	robotoFontConfig.FontDataOwnedByAtlas = false;
 	robotoFontConfig.SizePixels = 13.0f;
 	robotoFontConfig.OversampleH = 1;
 	robotoFontConfig.OversampleV = 1;
@@ -79,6 +83,7 @@ int	main(int argc, char** argv)
 
 	const ImWchar materialDesignIconFontRanges[] = { ICON_MIN_MDI, ICON_MAX_MDI, 0 };
 	ImFontConfig materialDesignIconFontConfig;
+	materialDesignIconFontConfig.FontDataOwnedByAtlas = false;
 	materialDesignIconFontConfig.MergeMode = true;
 	materialDesignIconFontConfig.PixelSnapH = true;
 	materialDesignIconFontConfig.GlyphOffset.y = 2;
@@ -101,21 +106,24 @@ int	main(int argc, char** argv)
 
 	std::mutex processesLock;
 	std::vector<Process*> processes;
-	std::function<void(uint64_t)> onProcessCreated([&processesLock, &processes](uint64_t pid)
+	std::vector<Query> queries;
+	std::function<void(std::string const&, uint64_t)> onProcessCreated([&processesLock, &processes, &queries](std::string const& name, uint64_t pid)
 	{
 		processesLock.lock();
-		processes.push_back(new Process(pid));
+		processes.push_back(new Process(pid, name));
+		queries.emplace_back(processes.back());
 		processesLock.unlock();
 	});
-	std::function<void(uint64_t)> onProcessTerminated([&processesLock, &processes](uint64_t pid)
+	std::function<void(uint64_t)> onProcessTerminated([&processesLock, &processes, &queries](uint64_t pid)
 	{
 		processesLock.lock();
 		for (size_t i = 0; i < processes.size(); ++i)
 		{
 			Process* process = processes[i];
-			if (process->GetPid() == pid)
+			if (process->pid == pid)
 			{
 				processes.erase(processes.begin() + i);
+				queries.erase(queries.begin() + i);
 				delete process;
 				break;
 			}
@@ -124,6 +132,7 @@ int	main(int argc, char** argv)
 	});
 	systemWatcher.StartWatch(processName, onProcessCreated, onProcessTerminated);
 
+	float timer = 1.f;
 	bool exit = false;
 	while (exit == false)
 	{
@@ -150,6 +159,14 @@ int	main(int argc, char** argv)
 		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
 
+		bool update = false;
+		timer += ImGui::GetIO().DeltaTime;
+		if (timer >= 1.f)
+		{
+			timer -= 1.f;
+			update = true;
+		}
+
 		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
 		ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
 		if (ImGui::Begin("Tmp", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize))
@@ -166,15 +183,31 @@ int	main(int argc, char** argv)
 					delete process;
 				}
 				processes.clear();
+				queries.clear();
 				systemWatcher.StartWatch(processName, onProcessCreated, onProcessTerminated);
 			}
 
-			processesLock.lock();
-			for (Process* process : processes)
+			if (ImGui::BeginTabBar("##processTabBar"))
 			{
-				ImGui::Text("%ji", process->GetPid());
+				processesLock.lock();
+				for (uint32_t i {0}; i < processes.size(); ++i)
+				{
+					if (ImGui::BeginTabItem(std::format("{}", processes[i]->pid).data()))
+					{
+						static std::unordered_map<std::string, double> data;
+						if (update)
+							data = queries[i].Retrieve();
+
+						for (auto it = data.begin(); it != data.end(); ++it)
+						{
+							ImGui::Text("%s : %.2f", it->first.data(), it->second);
+						}
+						ImGui::EndTabItem();
+					}
+				}
+				processesLock.unlock();
+				ImGui::EndTabBar();
 			}
-			processesLock.unlock();
 		}
 		ImGui::End();
 
@@ -221,12 +254,12 @@ int	main(int argc, char** argv)
 	ImGui_ImplSDLGPU3_Shutdown();
 	ImPlot::DestroyContext();
 	ImGui::DestroyContext();
-	
+
 	SDL_ReleaseWindowFromGPUDevice(gpu_device, window);
 	SDL_DestroyGPUDevice(gpu_device);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
-	
+
 	systemWatcher.Terminate();
 	OS::Terminate();
 
