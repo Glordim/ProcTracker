@@ -46,7 +46,6 @@ NamespaceIndentation: All
 PackConstructorInitializers: Never
 PointerAlignment: Left
 QualifierAlignment: Left
-RemoveBracesLLVM: true
 RemoveParentheses: ReturnStatement
 RemoveSemicolon: true
 SeparateDefinitionBlocks: Always
