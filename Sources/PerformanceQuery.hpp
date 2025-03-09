@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Process.hpp"
+#include "SystemSpecs.hpp"
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -35,7 +36,18 @@ struct PerformanceSnapshot
 
 std::pair<double, const char*> AdjustSizeValue(double bytes);
 
+struct Time
+{
+	uint32_t d;
+	uint32_t h;
+	uint32_t m;
+	uint32_t s;
+};
+
+Time AdjustTimeValue(double sec);
+
 class Query
+
 {
 public:
 	Query(Process* proc);
@@ -46,7 +58,7 @@ public:
 
 	void Update();
 
-	PerformanceSnapshot Retrieve();
+	PerformanceSnapshot Retrieve(const SystemSpecs& specs);
 
 private:
 	Process* _proc;

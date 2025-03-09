@@ -13,6 +13,7 @@
 #include "OS.hpp"
 #include "PerformanceQuery.hpp"
 #include "Process.hpp"
+#include "SystemSpecs.hpp"
 #include "SystemWatcher.hpp"
 
 #include <algorithm>
@@ -61,7 +62,7 @@ int main(int argc, char** argv)
 		printf("Error: SDL_ClaimWindowForGPUDevice(): %s\n", SDL_GetError());
 		return -1;
 	}
-	SDL_SetGPUSwapchainParameters(gpu_device, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_MAILBOX);
+	SDL_SetGPUSwapchainParameters(gpu_device, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC);
 
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
@@ -103,6 +104,7 @@ int main(int argc, char** argv)
 
 	static char processName[4096] = {'\0'};
 	std::strcpy(processName, "ProcTracker");
+	SystemSpecs specs;
 
 	std::mutex                                        processesLock;
 	std::vector<Process*>                             processes;
@@ -207,16 +209,38 @@ int main(int argc, char** argv)
 				processesLock.lock();
 				for (uint32_t i {0}; i < processes.size(); ++i)
 				{
+					static uint32_t lastTab {0};
 					if (ImGui::BeginTabItem(std::format("{}", processes[i]->pid).data()))
 					{
+						if (lastTab != i)
+						{
+							update = true;
+							lastTab = i;
+						}
 						static PerformanceSnapshot data;
 						if (update)
 						{
-							data = queries[i].Retrieve();
+							data = queries[i].Retrieve(specs);
 						}
 
 						ImGui::Text("CPU: %.2f%%", data.cpuUsage);
-						ImGui::Text("Elapsed Time: %.2f s", data.time);
+						Time time = AdjustTimeValue(data.time);
+						if (time.d)
+						{
+							ImGui::Text("Elapsed Time: %ud%uh%um%us", time.d, time.h, time.m, time.s);
+						}
+						else if (time.h)
+						{
+							ImGui::Text("Elapsed Time: %uh%um%us", time.h, time.m, time.s);
+						}
+						else if (time.m)
+						{
+							ImGui::Text("Elapsed Time: %um%us", time.m, time.s);
+						}
+						else
+						{
+							ImGui::Text("Elapsed Time: %us", time.s);
+						}
 						ImGui::NewLine();
 						ImGui::Text("Handle Count: %u", data.handleCount);
 						ImGui::Text("Thread Count: %u", data.threadCount);

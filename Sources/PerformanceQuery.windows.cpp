@@ -10,7 +10,7 @@
 namespace
 {
 	constexpr std::wstring_view perfCounters[] {
-		L"\\Process V2(%.*hs:%u)\\%% User Time",
+		L"\\Process V2(%.*hs:%u)\\%% Processor Time",
 		L"\\Process V2(%.*hs:%u)\\Elapsed Time",
 		L"\\Process V2(%.*hs:%u)\\Handle Count",
 		L"\\Process V2(%.*hs:%u)\\Thread Count",
@@ -92,7 +92,7 @@ Query& Query::operator=(Query&& other)
 
 void Query::Update() {}
 
-PerformanceSnapshot Query::Retrieve()
+PerformanceSnapshot Query::Retrieve(const SystemSpecs& specs)
 {
 	PerformanceSnapshot out {};
 
@@ -126,6 +126,8 @@ PerformanceSnapshot Query::Retrieve()
 		}
 	}
 
+	out.cpuUsage /= specs.GetProcessorNumber();
+
 	return out;
 }
 
@@ -133,7 +135,9 @@ DWORD Query::FmtForCounter(uint32_t idx)
 {
 	switch (idx)
 	{
-		case 0:  // cpu usage
+		case 0: // cpu usage
+			return PDH_FMT_DOUBLE | PDH_FMT_NOCAP100;
+
 		case 1:  // elapsed time
 		case 4:  // read  bytes
 		case 5:  //  *    op
