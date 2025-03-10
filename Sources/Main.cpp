@@ -15,10 +15,15 @@
 #include "Process.hpp"
 #include "PerformanceQuery.hpp"
 
+#include "Handle/Handle.hpp"
+#include "Handle/HandleQuery.hpp"
+
 #include <algorithm>
 #include <functional>
 #include <mutex>
 #include <format>
+
+#undef max
 
 int	main(int argc, char** argv)
 {
@@ -192,7 +197,8 @@ int	main(int argc, char** argv)
 				processesLock.lock();
 				for (uint32_t i {0}; i < processes.size(); ++i)
 				{
-					if (ImGui::BeginTabItem(std::format("{}", processes[i]->pid).data()))
+					Process* process = processes[i];
+					if (ImGui::BeginTabItem(std::format("{}", process->pid).data()))
 					{
 						static std::unordered_map<std::string, double> data;
 						if (update)
@@ -201,6 +207,150 @@ int	main(int argc, char** argv)
 						for (auto it = data.begin(); it != data.end(); ++it)
 						{
 							ImGui::Text("%s : %.2f", it->first.data(), it->second);
+						}
+
+						if (ImGui::CollapsingHeader("Handles", ImGuiTreeNodeFlags_DefaultOpen))
+						{
+							static const char* handleTypeLabels[(uint8_t)Handle::Type::Count] = {
+								"Unknown",
+								"AlpcPort",
+								"Desktop",
+								"Directory",
+								"DxgkSharedResource",
+								"Event",
+								"File",
+								"IoCompletion",
+								"IoCompletionReserve",
+								"IrTimer",
+								"Key",
+								"Mutant",
+								"SchedulerSharedData",
+								"Section",
+								"Semaphore",
+								"Thread",
+								"Timer",
+								"TpWorkerFactory",
+								"WaitCompletionPacket",
+								"WindowStation",
+							};
+
+							ImGui::AlignTextToFramePadding();
+							ImGui::TextUnformatted("Type");
+							ImGui::SameLine();
+							ImGui::SetNextItemWidth(320);
+							static std::string typeFilterPreview = "All";
+							static uint32_t typeMask = std::numeric_limits<uint32_t>::max();
+							if (ImGui::BeginCombo("##Type", typeFilterPreview.c_str()))
+							{
+								if (ImGui::Button("All"))
+								{
+									typeMask = std::numeric_limits<uint32_t>::max();
+									typeFilterPreview = "All";
+								}
+								ImGui::SameLine();
+								if (ImGui::Button("None"))
+								{
+									typeMask = 0;
+									typeFilterPreview = "None";
+								}
+								ImGui::Separator();
+
+								for (uint8_t index = 0; index < (uint8_t)Handle::Type::Count; ++index)
+								{
+									bool checked = typeMask & (1 << index);
+									if (ImGui::Checkbox(handleTypeLabels[index], &checked))
+									{
+										if (checked)
+										{
+											typeMask |= (1 << index);
+										}
+										else
+										{
+											typeMask &= ~(1 << index);
+										}
+										typeFilterPreview = "Mix";
+									}
+								}
+
+								ImGui::EndCombo();
+							}
+
+							ImGui::SameLine();
+
+							ImGui::AlignTextToFramePadding();
+							ImGui::TextUnformatted("Info");
+							ImGui::SameLine();
+							ImGui::SetNextItemWidth(320);
+							static char infoBuffer[2048] = { '\0' };
+							ImGui::InputText("##Info", infoBuffer, sizeof(infoBuffer));
+
+							ImGui::SameLine();
+
+							bool forceHandleSort = false;
+							if (ImGui::Button("Refresh"))
+							{
+								for (Handle* handle : process->handles)
+								{
+									delete handle;
+								}
+								process->handles.clear();
+
+								HandleQuery::GenerateHandles(process->pid, process->handles);
+								forceHandleSort = true;
+							}
+
+							if (ImGui::BeginTable("Handles", 3, ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY))
+							{
+								ImGui::TableSetupColumn("Id", ImGuiTableColumnFlags_WidthFixed);
+								ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultSort);
+								ImGui::TableSetupColumn("Info", ImGuiTableColumnFlags_WidthStretch);
+								ImGui::TableHeadersRow();
+
+								if (ImGui::TableGetSortSpecs()->SpecsDirty || forceHandleSort)
+								{
+									ImGui::TableGetSortSpecs()->SpecsDirty = false;
+
+									bool ascending = ImGui::TableGetSortSpecs()->Specs[0].SortDirection == ImGuiSortDirection_Ascending;
+									if (ImGui::TableGetSortSpecs()->Specs[0].ColumnIndex == 0)
+									{
+										std::sort(process->handles.begin(), process->handles.end(), [ascending](Handle* a, Handle* b) { return (a->id < b->id) == ascending; });
+									}
+									else if (ImGui::TableGetSortSpecs()->Specs[0].ColumnIndex == 1)
+									{
+										std::sort(process->handles.begin(), process->handles.end(), [ascending](Handle* a, Handle* b) { return (a->type < b->type) == ascending; });
+									}
+									else if (ImGui::TableGetSortSpecs()->Specs[0].ColumnIndex == 2)
+									{
+										std::sort(process->handles.begin(), process->handles.end(), [ascending](Handle* a, Handle* b) { return (a->info < b->info) == ascending; });
+									}
+								}
+
+								for (Handle* handle : process->handles)
+								{
+									if ((typeMask & (1 << (uint32_t)handle->type)) == 0)
+									{
+										continue;
+									}
+
+									if (infoBuffer[0] != '\0' && handle->info.find(infoBuffer) == std::string::npos)
+									{
+										continue;
+									}
+
+									ImGui::TableNextRow();
+
+									ImGui::TableNextColumn();
+									ImGui::Text("%jX", (uint64_t)handle->id);
+
+									ImGui::TableNextColumn();
+									ImGui::TextUnformatted(handleTypeLabels[(uint8_t)handle->type]);
+
+									ImGui::TableNextColumn();
+									ImGui::TextUnformatted(handle->info.c_str());
+								}
+
+								ImGui::EndTable();
+							}
 						}
 						ImGui::EndTabItem();
 					}
@@ -212,7 +362,10 @@ int	main(int argc, char** argv)
 		ImGui::End();
 
 		static bool show_demo_window = true;
-		ImGui::ShowDemoWindow(&show_demo_window);
+		if (show_demo_window)
+		{
+			ImGui::ShowDemoWindow(&show_demo_window);
+		}
 
 		ImGui::Render();
 		ImDrawData* draw_data = ImGui::GetDrawData();

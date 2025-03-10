@@ -8,7 +8,8 @@
 			"program": "${command:cmake.launchTargetPath}",
 			"args": [],
 			"cwd": "${command:cmake.launchTargetDirectory}",
-			"preLaunchTask": "Build Target"
+			"preLaunchTask": "Build Target",
+			"console": "integratedTerminal",
 		},
 		{
 			"name": "Launch (cppvsdbg)",
@@ -17,7 +18,8 @@
 			"program": "${command:cmake.launchTargetPath}",
 			"args": [],
 			"cwd": "${command:cmake.launchTargetDirectory}",
-			"preLaunchTask": "Build Target"
+			"preLaunchTask": "Build Target",
+			"console": "integratedTerminal",
 		}
 	]
 }
