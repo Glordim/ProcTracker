@@ -1,31 +1,32 @@
 #include "Pch.hpp"
 
-#include "DearImGui/imgui.h"
-#include "DearImGui/ImPlot/implot.h"
 #include "DearImGui/backends/imgui_impl_sdl3.h"
 #include "DearImGui/backends/imgui_impl_sdlgpu3.h"
+#include "DearImGui/imgui.h"
+#include "DearImGui/ImPlot/implot.h"
 #include <SDL3/SDL.h>
 
-#include "Font/Roboto-Regular.ttf.hpp"
-#include "Font/MaterialDesignIcons.ttf.hpp"
 #include "Font/IconsMaterialDesignIcons.h"
+#include "Font/MaterialDesignIcons.ttf.hpp"
+#include "Font/Roboto-Regular.ttf.hpp"
 
 #include "OS.hpp"
-#include "SystemWatcher.hpp"
-#include "Process.hpp"
 #include "PerformanceQuery.hpp"
+#include "Process.hpp"
+#include "SystemSpecs.hpp"
+#include "SystemWatcher.hpp"
 
 #include "Handle/Handle.hpp"
 #include "Handle/HandleQuery.hpp"
 
 #include <algorithm>
+#include <format>
 #include <functional>
 #include <mutex>
-#include <format>
 
 #undef max
 
-int	main(int argc, char** argv)
+int main(int argc, char** argv)
 {
 	if (OS::Init() == false)
 	{
@@ -66,7 +67,7 @@ int	main(int argc, char** argv)
 		printf("Error: SDL_ClaimWindowForGPUDevice(): %s\n", SDL_GetError());
 		return -1;
 	}
-	SDL_SetGPUSwapchainParameters(gpu_device, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_MAILBOX);
+	SDL_SetGPUSwapchainParameters(gpu_device, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC);
 
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
@@ -86,8 +87,8 @@ int	main(int argc, char** argv)
 	io.Fonts->AddFontFromMemoryTTF(Roboto_Regular_ttf, Roboto_Regular_ttf_size, 16.0f, &robotoFontConfig);
 	io.Fonts->Build();
 
-	const ImWchar materialDesignIconFontRanges[] = { ICON_MIN_MDI, ICON_MAX_MDI, 0 };
-	ImFontConfig materialDesignIconFontConfig;
+	const ImWchar materialDesignIconFontRanges[] = {ICON_MIN_MDI, ICON_MAX_MDI, 0};
+	ImFontConfig  materialDesignIconFontConfig;
 	materialDesignIconFontConfig.FontDataOwnedByAtlas = false;
 	materialDesignIconFontConfig.MergeMode = true;
 	materialDesignIconFontConfig.PixelSnapH = true;
@@ -106,39 +107,43 @@ int	main(int argc, char** argv)
 	init_info.MSAASamples = SDL_GPU_SAMPLECOUNT_1;
 	ImGui_ImplSDLGPU3_Init(&init_info);
 
-	static char processName[4096] = { '\0' };
+	static char processName[4096] = {'\0'};
 	std::strcpy(processName, "ProcTracker");
+	SystemSpecs specs;
 
-	std::mutex processesLock;
-	std::vector<Process*> processes;
-	std::vector<Query> queries;
-	std::function<void(std::string const&, uint64_t)> onProcessCreated([&processesLock, &processes, &queries](std::string const& name, uint64_t pid)
-	{
-		processesLock.lock();
-		processes.push_back(new Process(pid, name));
-		queries.emplace_back(processes.back());
-		processesLock.unlock();
-	});
-	std::function<void(uint64_t)> onProcessTerminated([&processesLock, &processes, &queries](uint64_t pid)
-	{
-		processesLock.lock();
-		for (size_t i = 0; i < processes.size(); ++i)
+	std::mutex                                        processesLock;
+	std::vector<Process*>                             processes;
+	std::vector<Query>                                queries;
+	std::function<void(const std::string&, uint64_t)> onProcessCreated(
+		[&processesLock, &processes, &queries](const std::string& name, uint64_t pid)
 		{
-			Process* process = processes[i];
-			if (process->pid == pid)
+			processesLock.lock();
+			processes.push_back(new Process(pid, name));
+			queries.emplace_back(processes.back());
+			processesLock.unlock();
+		});
+	std::function<void(uint64_t)> onProcessTerminated(
+		[&processesLock, &processes, &queries](uint64_t pid)
+		{
+			processesLock.lock();
+			for (size_t i = 0; i < processes.size(); ++i)
 			{
-				processes.erase(processes.begin() + i);
-				queries.erase(queries.begin() + i);
-				delete process;
-				break;
+				Process* process = processes[i];
+				if (process->pid == pid)
+				{
+					processes.erase(processes.begin() + i);
+					queries.erase(queries.begin() + i);
+					delete process;
+					break;
+				}
 			}
-		}
-		processesLock.unlock();
-	});
+			processesLock.unlock();
+		});
 	systemWatcher.StartWatch(processName, onProcessCreated, onProcessTerminated);
 
-	float timer = 1.f;
-	bool exit = false;
+	float maxTimer = 1.f;
+	float timer = maxTimer;
+	bool  exit = false;
 	while (exit == false)
 	{
 		SDL_Event event;
@@ -166,14 +171,26 @@ int	main(int argc, char** argv)
 
 		bool update = false;
 		timer += ImGui::GetIO().DeltaTime;
-		if (timer >= 1.f)
+		if (timer >= maxTimer)
 		{
-			timer -= 1.f;
+			timer -= maxTimer;
 			update = true;
 		}
 
-		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-		ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+		static bool show_demo_window = true;
+		if (ImGui::BeginMainMenuBar())
+		{
+			ImGui::SetNextItemWidth(100.f);
+			ImGui::SliderFloat("Refresh Rate", &maxTimer, 0.01f, 2.f, "%.2fs");
+
+			ImGui::Checkbox("Show Demo", &show_demo_window);
+
+			ImGui::EndMainMenuBar();
+		}
+
+		ImVec2 pos(0, ImGui::GetFrameHeight());
+		ImGui::SetNextWindowPos(pos);
+		ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - pos);
 		if (ImGui::Begin("Tmp", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize))
 		{
 			ImGui::AlignTextToFramePadding();
@@ -198,16 +215,60 @@ int	main(int argc, char** argv)
 				for (uint32_t i {0}; i < processes.size(); ++i)
 				{
 					Process* process = processes[i];
+					static uint32_t lastTab {0};
 					if (ImGui::BeginTabItem(std::format("{}", process->pid).data()))
 					{
-						static std::unordered_map<std::string, double> data;
-						if (update)
-							data = queries[i].Retrieve();
-
-						for (auto it = data.begin(); it != data.end(); ++it)
+						if (lastTab != i)
 						{
-							ImGui::Text("%s : %.2f", it->first.data(), it->second);
+							update = true;
+							lastTab = i;
 						}
+
+						static PerformanceSnapshot data;
+						if (update)
+						{
+							data = queries[i].Retrieve(specs);
+						}
+
+						ImGui::Text("CPU: %.2f%%", data.cpuUsage);
+						Time time = AdjustTimeValue(data.time);
+						if (time.d)
+						{
+							ImGui::Text("Elapsed Time: %ud%uh%um%us", time.d, time.h, time.m, time.s);
+						}
+						else if (time.h)
+						{
+							ImGui::Text("Elapsed Time: %uh%um%us", time.h, time.m, time.s);
+						}
+						else if (time.m)
+						{
+							ImGui::Text("Elapsed Time: %um%us", time.m, time.s);
+						}
+						else
+						{
+							ImGui::Text("Elapsed Time: %us", time.s);
+						}
+						ImGui::NewLine();
+						ImGui::Text("Handle Count: %u", data.handleCount);
+						ImGui::Text("Thread Count: %u", data.threadCount);
+						ImGui::NewLine();
+						std::pair adjustedSize = AdjustSizeValue(data.read.bytesPerSec);
+						ImGui::Text("Read Data: %.2f %s/s", adjustedSize.first, adjustedSize.second);
+						ImGui::Text("Read Operations: %.2f/s", data.read.opPerSec);
+						adjustedSize = AdjustSizeValue(data.write.bytesPerSec);
+						ImGui::Text("Write Data: %.2f %s/s", adjustedSize.first, adjustedSize.second);
+						ImGui::Text("Write Operations: %.2f/s", data.write.opPerSec);
+						adjustedSize = AdjustSizeValue(data.other.bytesPerSec);
+						ImGui::Text("Other Data: %.2f %s/s", adjustedSize.first, adjustedSize.second);
+						ImGui::Text("Other Operations: %.2f/s", data.other.opPerSec);
+						ImGui::NewLine();
+						ImGui::Text("Page Faults: %.2f/s", data.pageFaultsPerSec);
+						adjustedSize = AdjustSizeValue(data.privateBytes);
+						ImGui::Text("Private Memory: %.2f %s", adjustedSize.first, adjustedSize.second);
+						adjustedSize = AdjustSizeValue(data.workingSet);
+						ImGui::Text("Working Set: %.2f %s", adjustedSize.first, adjustedSize.second);
+						adjustedSize = AdjustSizeValue(data.virtualBytes);
+						ImGui::Text("Virtual Memory: %.2f %s", adjustedSize.first, adjustedSize.second);
 
 						if (ImGui::CollapsingHeader("Handles", ImGuiTreeNodeFlags_DefaultOpen))
 						{
@@ -352,6 +413,7 @@ int	main(int argc, char** argv)
 								ImGui::EndTable();
 							}
 						}
+
 						ImGui::EndTabItem();
 					}
 				}
@@ -361,7 +423,6 @@ int	main(int argc, char** argv)
 		}
 		ImGui::End();
 
-		static bool show_demo_window = true;
 		if (show_demo_window)
 		{
 			ImGui::ShowDemoWindow(&show_demo_window);
@@ -369,7 +430,7 @@ int	main(int argc, char** argv)
 
 		ImGui::Render();
 		ImDrawData* draw_data = ImGui::GetDrawData();
-		const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
+		const bool  is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
 
 		SDL_GPUCommandBuffer* command_buffer = SDL_AcquireGPUCommandBuffer(gpu_device); // Acquire a GPU command buffer
 
@@ -384,7 +445,7 @@ int	main(int argc, char** argv)
 			// Setup and start a render pass
 			SDL_GPUColorTargetInfo target_info = {};
 			target_info.texture = swapchain_texture;
-			target_info.clear_color = SDL_FColor { 0.0f, 0.0f, 0.0f, 1.0f };
+			target_info.clear_color = SDL_FColor {0.0f, 0.0f, 0.0f, 1.0f};
 			target_info.load_op = SDL_GPU_LOADOP_CLEAR;
 			target_info.store_op = SDL_GPU_STOREOP_STORE;
 			target_info.mip_level = 0;

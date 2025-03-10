@@ -1,10 +1,10 @@
-#include "Pch.hpp"
 #include "SystemWatcher.hpp"
 #include "OS.hpp"
+#include "Pch.hpp"
 
-#include <Windows.h>
 #include <comdef.h>
 #include <Wbemidl.h>
+#include <Windows.h>
 #pragma comment(lib, "wbemuuid.lib")
 
 #include <iostream>
@@ -14,15 +14,13 @@
 class SystemWatcherWbemSink : public IWbemObjectSink
 {
 public:
-	SystemWatcherWbemSink(const std::function<void(std::string const&, uint64_t)>& callback)
+	SystemWatcherWbemSink(const std::function<void(const std::string&, uint64_t)>& callback)
 	: _refCount(1)
 	, _callback(callback)
-	{
-
-	}
+	{}
 
 	// IUnknown Methods
-	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppv) override
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppv) override
 	{
 		if (riid == IID_IUnknown || riid == IID_IWbemObjectSink)
 		{
@@ -50,7 +48,7 @@ public:
 	}
 
 	// IWbemObjectSink Methods
-	HRESULT STDMETHODCALLTYPE Indicate(LONG lObjectCount, IWbemClassObject **ppObjects) override
+	HRESULT STDMETHODCALLTYPE Indicate(LONG lObjectCount, IWbemClassObject** ppObjects) override
 	{
 		for (LONG i = 0; i < lObjectCount; ++i)
 		{
@@ -60,8 +58,8 @@ public:
 			HRESULT hr = ppObjects[i]->Get(L"TargetInstance", 0, &var, 0, 0);
 			if (SUCCEEDED(hr) && var.vt == VT_UNKNOWN)
 			{
-				IWbemClassObject *pObj = nullptr;
-				hr = var.punkVal->QueryInterface(IID_IWbemClassObject, (void **)&pObj);
+				IWbemClassObject* pObj = nullptr;
+				hr = var.punkVal->QueryInterface(IID_IWbemClassObject, (void**)&pObj);
 				if (SUCCEEDED(hr) && pObj)
 				{
 					VARIANT varName, varPid;
@@ -70,7 +68,7 @@ public:
 					if (SUCCEEDED(pObj->Get(L"Name", 0, &varName, 0, 0)) && SUCCEEDED(pObj->Get(L"ProcessId", 0, &varPid, 0, 0)))
 					{
 						std::wcout << L"New process : " << varName.bstrVal << L" (PID: " << varPid.uintVal << L")" << std::endl;
-						size_t len = wcstombs(nullptr, varName.bstrVal, 0);
+						size_t      len = wcstombs(nullptr, varName.bstrVal, 0);
 						std::string nameUtf8(len, '\0');
 						wcstombs(nameUtf8.data(), varName.bstrVal, len);
 						_callback(nameUtf8, varPid.uintVal);
@@ -85,21 +83,20 @@ public:
 		return WBEM_S_NO_ERROR;
 	}
 
-	HRESULT STDMETHODCALLTYPE SetStatus(LONG lStatus, HRESULT hResult, BSTR strParam, IWbemClassObject *pObjParam) override
+	HRESULT STDMETHODCALLTYPE SetStatus(LONG lStatus, HRESULT hResult, BSTR strParam, IWbemClassObject* pObjParam) override
 	{
 		// Si vous avez besoin de gérer les statuts d'erreur ou d'autres informations de statut.
 		return WBEM_S_NO_ERROR;
 	}
 
 private:
-
-	long							_refCount;
-	std::function<void(std::string const&, uint64_t)>	_callback;
+	long                                              _refCount;
+	std::function<void(const std::string&, uint64_t)> _callback;
 };
 
 bool SystemWatcher::Init()
 {
-	HRESULT hres = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID *)&_locator);
+	HRESULT hres = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID*)&_locator);
 	if (FAILED(hres))
 	{
 		std::cerr << "SystemWatcher: Unable to create IWbemLocator" << std::endl;
@@ -141,7 +138,8 @@ void SystemWatcher::Terminate()
 	}
 }
 
-bool SystemWatcher::StartWatch(std::string_view processName, const std::function<void(std::string const&, uint64_t)>& onProcessCreated, const std::function<void(uint64_t)>& onProcessTerminated)
+bool SystemWatcher::StartWatch(std::string_view processName, const std::function<void(const std::string&, uint64_t)>& onProcessCreated,
+                               const std::function<void(uint64_t)>& onProcessTerminated)
 {
 	assert(_services);
 	assert(_createSink == nullptr);
@@ -150,16 +148,16 @@ bool SystemWatcher::StartWatch(std::string_view processName, const std::function
 	_onProcessCreated = onProcessCreated;
 	_onProcessTerminated = onProcessTerminated;
 
-	_createSink = new SystemWatcherWbemSink([this](std::string const& name, uint64_t pid) { _onProcessCreated(name, pid); });
+	_createSink = new SystemWatcherWbemSink([this](const std::string& name, uint64_t pid) { _onProcessCreated(name, pid); });
 	std::string request = std::format("SELECT * FROM __InstanceCreationEvent WITHIN 1 WHERE TargetInstance ISA 'Win32_Process' AND TargetInstance.Name = '{}.exe'", processName);
-	HRESULT hres = _services->ExecNotificationQueryAsync(_bstr_t("WQL"), _bstr_t(request.c_str()), 0, NULL, _createSink);
+	HRESULT     hres = _services->ExecNotificationQueryAsync(_bstr_t("WQL"), _bstr_t(request.c_str()), 0, NULL, _createSink);
 	if (FAILED(hres))
 	{
 		std::cerr << "SystemWatcher: Unable to execute WMI request" << std::endl;
 		return false;
 	}
 
-	_terminateSink = new SystemWatcherWbemSink([this](std::string const& name,uint64_t pid) { _onProcessTerminated(pid); });
+	_terminateSink = new SystemWatcherWbemSink([this](const std::string& name, uint64_t pid) { _onProcessTerminated(pid); });
 	request = std::format("SELECT * FROM __InstanceDeletionEvent WITHIN 1 WHERE TargetInstance ISA 'Win32_Process' AND TargetInstance.Name = '{}.exe'", processName);
 	hres = _services->ExecNotificationQueryAsync(_bstr_t("WQL"), _bstr_t(request.c_str()), 0, NULL, _terminateSink);
 	if (FAILED(hres))
@@ -176,14 +174,16 @@ bool SystemWatcher::StartWatch(std::string_view processName, const std::function
 		std::cerr << "SystemWatcher: Unable to execute WMI request" << std::endl;
 		return false;
 	}
-	IWbemClassObject *pclsObj = NULL;
-	ULONG uReturn = 0;
+	IWbemClassObject* pclsObj = NULL;
+	ULONG             uReturn = 0;
 
 	while (enumerator)
 	{
 		hres = enumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
 		if (uReturn == 0)
+		{
 			break;
+		}
 
 		VARIANT varName, varPid;
 		VariantInit(&varName);
@@ -191,7 +191,7 @@ bool SystemWatcher::StartWatch(std::string_view processName, const std::function
 		if (SUCCEEDED(pclsObj->Get(L"Name", 0, &varName, 0, 0)) && SUCCEEDED(pclsObj->Get(L"ProcessId", 0, &varPid, 0, 0)))
 		{
 			std::wcout << L"Process : " << varName.bstrVal << L" (PID: " << varPid.uintVal << L")" << std::endl;
-			size_t len = wcstombs(nullptr, varName.bstrVal, 0);
+			size_t      len = wcstombs(nullptr, varName.bstrVal, 0);
 			std::string nameUtf8(len, '\0');
 			wcstombs(nameUtf8.data(), varName.bstrVal, len);
 			_onProcessCreated(nameUtf8, varPid.uintVal);
