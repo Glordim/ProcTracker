@@ -24,7 +24,20 @@
 #include <functional>
 #include <mutex>
 
+#include "RingBuffer.hpp"
+
 #undef max
+
+ImPlotPoint ImPlotRingBufferGetter(int index, void* user_data)
+{
+	RingBuffer<float>* rigBuffer = static_cast<RingBuffer<float>*>(user_data);
+	return ImPlotPoint(index, rigBuffer->GetRawData()[rigBuffer->GetRawIndex(index)]);
+}
+
+ImPlotPoint ImPlotRingBufferGetterZeroY(int index, void* user_data)
+{
+	return ImPlotPoint(index, 0.0f);
+}
 
 int main(int argc, char** argv)
 {
@@ -225,9 +238,19 @@ int main(int argc, char** argv)
 						}
 
 						static PerformanceSnapshot data;
+						static RingBuffer<float> cpuUsageBuffer(256);
 						if (update)
 						{
 							data = queries[i].Retrieve(specs);
+							cpuUsageBuffer.PushBack(data.cpuUsage);
+						}
+
+						ImPlot::SetNextAxisLimits(ImAxis_X1, 0, cpuUsageBuffer.GetCapacity(), ImGuiCond_Always);
+						ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0f, 100.0f);
+						if (ImPlot::BeginPlot("CPU", ImVec2(-1, 200), ImPlotAxisFlags_None))
+						{
+							ImPlot::PlotShadedG("CPU%", &ImPlotRingBufferGetter, &cpuUsageBuffer, &ImPlotRingBufferGetterZeroY, &cpuUsageBuffer, cpuUsageBuffer.GetSize());
+							ImPlot::EndPlot();
 						}
 
 						ImGui::Text("CPU: %.2f%%", data.cpuUsage);
