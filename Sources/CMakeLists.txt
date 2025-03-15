@@ -44,6 +44,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${freetype_INCLUDE_DIRS} ${SDL_I
 
 include_directories(SYSTEM
 	"DearImGui" # for imguiFreetype include
+	${phnt_SOURCE_DIR}
 )
 
 target_link_libraries(ProcTracker ${freetype_LIBRARIES} ${SDL_LIBRARIES})

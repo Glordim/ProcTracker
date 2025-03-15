@@ -4,12 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
-#ifdef _WIN32
-#include <Pdh.h>
-#include <PdhMsg.h>
-#endif
-
-class Handle;
+struct Handle;
 
 class HandleQuery
 {

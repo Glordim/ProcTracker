@@ -2,43 +2,13 @@
 #include "Handle.hpp"
 #include "HandleQuery.hpp"
 
-#include <Ntstatus.h>
-#include <Windows.h>
-#include <winternl.h>
-
 #include <functional>
 #include <unordered_map>
 
+#include <phnt_windows.h>
+
+#include <phnt.h>
 #pragma comment(lib, "ntdll.lib")
-
-// TODO may be add https://github.com/winsiderss/phnt in deps ?
-struct SYSTEM_HANDLE
-{
-	USHORT      UniqueProcessId;
-	USHORT      CreatorBackTraceIndex;
-	UCHAR       ObjectTypeNumber;
-	UCHAR       Flags;
-	USHORT      Handle;
-	PVOID       Object;
-	ACCESS_MASK GrantedAccess;
-};
-
-static constexpr SYSTEM_INFORMATION_CLASS SystemHandleInformation = (SYSTEM_INFORMATION_CLASS)16;
-
-struct SYSTEM_HANDLE_INFORMATION
-{
-	ULONG         HandleCount;
-	SYSTEM_HANDLE Handles[1];
-};
-
-static constexpr OBJECT_INFORMATION_CLASS ObjectNameInformation = (OBJECT_INFORMATION_CLASS)1;
-
-struct OBJECT_NAME_INFORMATION
-{
-	UNICODE_STRING Name;
-};
-
-//
 
 std::wstring GetHandleName(HANDLE handle)
 {
@@ -233,23 +203,23 @@ void HandleQuery::GenerateHandles(uint64_t pid, std::vector<Handle*>& handles)
 	}
 
 	SYSTEM_HANDLE_INFORMATION* handleInfo = (SYSTEM_HANDLE_INFORMATION*)buffer;
-	for (ULONG i = 0; i < handleInfo->HandleCount; ++i)
+	for (ULONG i = 0; i < handleInfo->NumberOfHandles; ++i)
 	{
-		const SYSTEM_HANDLE& ntHandle = handleInfo->Handles[i];
+		const SYSTEM_HANDLE_TABLE_ENTRY_INFO& ntHandle = handleInfo->Handles[i];
 		if (ntHandle.UniqueProcessId == pid)
 		{
 			BYTE  buffer[1024];
 			ULONG returnLength;
 
-			NTSTATUS status = NtQueryObject((HANDLE)ntHandle.Handle, ObjectTypeInformation, buffer, sizeof(buffer), &returnLength);
+			NTSTATUS status = NtQueryObject((HANDLE)ntHandle.HandleValue, ObjectTypeInformation, buffer, sizeof(buffer), &returnLength);
 			if (status == 0)
 			{
-				PUBLIC_OBJECT_TYPE_INFORMATION* pInfo = (PUBLIC_OBJECT_TYPE_INFORMATION*)buffer;
+				OBJECT_TYPE_INFORMATION* pInfo = (OBJECT_TYPE_INFORMATION*)buffer;
 
 				auto it = handleFactory.find(pInfo->TypeName.Buffer);
 				if (it != handleFactory.end())
 				{
-					Handle* handle = it->second((HANDLE)ntHandle.Handle);
+					Handle* handle = it->second((HANDLE)ntHandle.HandleValue);
 					if (handle != nullptr)
 					{
 						handles.push_back(handle);

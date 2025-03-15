@@ -2,11 +2,6 @@ cmake_minimum_required(VERSION 3.4...3.27)
 
 project(ProcTrackerRoot)
 
-option(ENABLE_UNITY_BUILD "Enable Unity Build for faster compilation" ON)
-if (ENABLE_UNITY_BUILD)
-	set(CMAKE_UNITY_BUILD ON)
-endif()
-
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
 
 include(FetchContent)
@@ -80,6 +75,12 @@ ExternalProject_Add(freetype
 
 message(STATUS "freetype is available in " ${freetype_INCLUDE_DIRS})
 message(STATUS "freetype is available in " ${freetype_LIBRARIES})
+
+if (WIN32)
+	FetchContent_Declare(phnt URL https://github.com/winsiderss/phnt/archive/refs/heads/master.zip)
+	FetchContent_MakeAvailable(phnt)
+	message(STATUS "phnt is available in " ${phnt_SOURCE_DIR})
+endif()
 
 SetupPlatform()
 SetupCompilation()
