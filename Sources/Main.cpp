@@ -28,15 +28,119 @@
 
 #undef max
 
-ImPlotPoint ImPlotRingBufferGetter(int index, void* user_data)
+ImPlotPoint ImPlotRingBufferGetterFloat(int index, void* user_data)
 {
-	RingBuffer<float>* rigBuffer = static_cast<RingBuffer<float>*>(user_data);
-	return ImPlotPoint(index, rigBuffer->GetRawData()[rigBuffer->GetRawIndex(index)]);
+	RingBuffer<float>* ringBuffer = static_cast<RingBuffer<float>*>(user_data);
+	return ImPlotPoint(ringBuffer->GetCapacity() - index, ringBuffer->GetRawData()[ringBuffer->GetRawIndex(index)]);
 }
 
-ImPlotPoint ImPlotRingBufferGetterZeroY(int index, void* user_data)
+ImPlotPoint ImPlotRingBufferGetterFloatZeroY(int index, void* user_data)
 {
-	return ImPlotPoint(index, 0.0f);
+	RingBuffer<float>* ringBuffer = static_cast<RingBuffer<float>*>(user_data);
+	return ImPlotPoint(ringBuffer->GetCapacity() - index, 0.0f);
+}
+
+ImPlotPoint ImPlotRingBufferGetterUInt64(int index, void* user_data)
+{
+	RingBuffer<uint64_t>* ringBuffer = static_cast<RingBuffer<uint64_t>*>(user_data);
+	return ImPlotPoint(ringBuffer->GetCapacity() - index, ringBuffer->GetRawData()[ringBuffer->GetRawIndex(index)]);
+}
+
+ImPlotPoint ImPlotRingBufferGetterUInt64ZeroY(int index, void* user_data)
+{
+	RingBuffer<uint64_t>* ringBuffer = static_cast<RingBuffer<uint64_t>*>(user_data);
+	return ImPlotPoint(ringBuffer->GetCapacity() - index, 0.0f);
+}
+
+int SizeFormatter(double value, char* buff, int size, void* user_data)
+{
+	std::pair<double, const char*> adjustedSize = AdjustSizeValue(value);
+	return snprintf(buff, size, "%.2f %s", adjustedSize.first, adjustedSize.second);
+}
+
+void SetupDarkTheme()
+{
+	ImVec4* colors = ImGui::GetStyle().Colors;
+	colors[ImGuiCol_Text] = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+	colors[ImGuiCol_TextDisabled] = ImVec4(0.35f, 0.35f, 0.35f, 1.00f);
+	colors[ImGuiCol_WindowBg] = ImVec4(0.12f, 0.12f, 0.12f, 1.0f);
+	colors[ImGuiCol_ChildBg] = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
+	colors[ImGuiCol_PopupBg] = ImVec4(0.17f, 0.17f, 0.17f, 1.0f);
+	colors[ImGuiCol_Border] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+	colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.0f);
+	colors[ImGuiCol_FrameBg] = ImVec4(0.22f, 0.23f, 0.25f, 1.0f);
+	colors[ImGuiCol_FrameBgHovered] = ImVec4(0.19f, 0.19f, 0.19f, 0.54f);
+	colors[ImGuiCol_FrameBgActive] = ImVec4(0.20f, 0.22f, 0.23f, 1.00f);
+	colors[ImGuiCol_TitleBg] = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
+	colors[ImGuiCol_TitleBgActive] = ImVec4(0.06f, 0.06f, 0.06f, 1.00f);
+	colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
+	colors[ImGuiCol_MenuBarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+	colors[ImGuiCol_ScrollbarBg] = ImVec4(0.05f, 0.05f, 0.05f, 0.05f);
+	colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.34f, 0.34f, 0.34f, 0.54f);
+	colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.40f, 0.40f, 0.40f, 0.54f);
+	colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.56f, 0.56f, 0.56f, 0.54f);
+	colors[ImGuiCol_CheckMark] = ImVec4(0.33f, 0.67f, 0.86f, 1.00f);
+	colors[ImGuiCol_SliderGrab] = ImVec4(0.34f, 0.34f, 0.34f, 0.54f);
+	colors[ImGuiCol_SliderGrabActive] = ImVec4(0.56f, 0.56f, 0.56f, 0.54f);
+	colors[ImGuiCol_Button] = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+	colors[ImGuiCol_ButtonHovered] = ImVec4(0.19f, 0.19f, 0.19f, 0.54f);
+	colors[ImGuiCol_ButtonActive] = ImVec4(0.20f, 0.22f, 0.23f, 1.00f);
+	colors[ImGuiCol_Header] = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
+	colors[ImGuiCol_HeaderHovered] = ImVec4(0.00f, 0.00f, 0.00f, 0.36f);
+	colors[ImGuiCol_HeaderActive] = ImVec4(0.20f, 0.22f, 0.23f, 0.33f);
+	colors[ImGuiCol_Separator] = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
+	colors[ImGuiCol_SeparatorHovered] = ImVec4(0.44f, 0.44f, 0.44f, 0.29f);
+	colors[ImGuiCol_SeparatorActive] = ImVec4(0.40f, 0.44f, 0.47f, 1.00f);
+	colors[ImGuiCol_ResizeGrip] = ImVec4(0.28f, 0.28f, 0.28f, 0.29f);
+	colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.44f, 0.44f, 0.44f, 0.29f);
+	colors[ImGuiCol_ResizeGripActive] = ImVec4(0.40f, 0.44f, 0.47f, 1.00f);
+	colors[ImGuiCol_Tab] = ImVec4(0.17f, 0.18f, 0.2f, 1.0f);
+	colors[ImGuiCol_TabHovered] = ImVec4(0.17f, 0.18f, 0.2f, 1.0f);
+	colors[ImGuiCol_TabSelected] = ImVec4(0.22f, 0.23f, 0.25f, 1.0f);
+	colors[ImGuiCol_TabDimmed] = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
+	colors[ImGuiCol_TabDimmedSelected] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+	// colors[ImGuiCol_DockingPreview] = ImVec4(0.33f, 0.67f, 0.86f, 1.00f);
+	// colors[ImGuiCol_DockingEmptyBg] = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
+	colors[ImGuiCol_PlotLines] = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
+	colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
+	colors[ImGuiCol_PlotHistogram] = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
+	colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
+	colors[ImGuiCol_TableHeaderBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
+	colors[ImGuiCol_TableBorderStrong] = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
+	colors[ImGuiCol_TableBorderLight] = ImVec4(0.28f, 0.28f, 0.28f, 0.29f);
+	colors[ImGuiCol_TableRowBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+	colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.00f, 1.00f, 1.00f, 0.06f);
+	colors[ImGuiCol_TextSelectedBg] = ImVec4(0.20f, 0.22f, 0.23f, 1.00f);
+	colors[ImGuiCol_DragDropTarget] = ImVec4(0.33f, 0.67f, 0.86f, 1.00f);
+	// colors[ImGuiCol_NavHighlight] = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
+	colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 0.00f, 0.00f, 0.70f);
+	colors[ImGuiCol_NavWindowingDimBg] = ImVec4(1.00f, 0.00f, 0.00f, 0.20f);
+	colors[ImGuiCol_ModalWindowDimBg] = ImVec4(1.00f, 0.00f, 0.00f, 0.35f);
+
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.WindowPadding = ImVec2(8.00f, 8.00f);
+	style.FramePadding = ImVec2(5.00f, 2.00f);
+	style.CellPadding = ImVec2(6.00f, 6.00f);
+	style.ItemSpacing = ImVec2(6.00f, 6.00f);
+	style.ItemInnerSpacing = ImVec2(6.00f, 6.00f);
+	style.TouchExtraPadding = ImVec2(0.00f, 0.00f);
+	style.IndentSpacing = 25;
+	style.ScrollbarSize = 15;
+	style.GrabMinSize = 10;
+	style.WindowBorderSize = 1;
+	style.ChildBorderSize = 1;
+	style.PopupBorderSize = 1;
+	style.FrameBorderSize = 1;
+	style.TabBorderSize = 1;
+	style.WindowRounding = 7;
+	style.ChildRounding = 4;
+	style.FrameRounding = 3;
+	style.PopupRounding = 4;
+	style.ScrollbarRounding = 9;
+	style.GrabRounding = 3;
+	style.LogSliderDeadzone = 4;
+	style.TabRounding = 4;
+	style.DisabledAlpha = 0.5f;
 }
 
 int main(int argc, char** argv)
@@ -89,7 +193,7 @@ int main(int argc, char** argv)
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-	ImGui::StyleColorsDark();
+	SetupDarkTheme();
 
 	ImFontConfig robotoFontConfig;
 	robotoFontConfig.FontDataOwnedByAtlas = false;
@@ -193,10 +297,94 @@ int main(int argc, char** argv)
 		static bool show_demo_window = true;
 		if (ImGui::BeginMainMenuBar())
 		{
-			ImGui::SetNextItemWidth(100.f);
-			ImGui::SliderFloat("Refresh Rate", &maxTimer, 0.01f, 2.f, "%.2fs");
+			if (ImGui::BeginMenu("File"))
+			{
+				if (ImGui::MenuItem("Quit"))
+				{
+					exit = true;
+				}
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Help"))
+			{
+				if (ImGui::MenuItem("About"))
+				{
+					// todo open about modal
+				}
+				ImGui::EndMenu();
+			}
 
-			ImGui::Checkbox("Show Demo", &show_demo_window);
+			/*
+			ImGui::AlignTextToFramePadding();
+			ImGui::TextUnformatted("Process Name");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(-1);
+			*/
+
+			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(2.0f, 0));
+			if (ImGui::BeginTable("MainBarTable", 3))
+			{
+				ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed);
+				ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed);
+
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+
+				float cellWidth = ImGui::GetContentRegionAvail().x;
+				float contentWidth = ImGui::CalcTextSize(ICON_MDI_TARGET).x * 2 + 350.0f + ImGui::GetStyle().ItemSpacing.x * 2;
+				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (cellWidth - contentWidth) * 0.5f);
+
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.0f, 0.0f, 1.0f));
+				ImGui::AlignTextToFramePadding();
+				ImGui::TextUnformatted(ICON_MDI_TARGET);
+				ImGui::PopStyleColor();
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(350.f);
+				const char* placeholder = "Enter the process name to track...";
+				const char* hint = placeholder;
+				if (processName[0] != '\0')
+				{
+					hint = processName;
+				}
+
+				if (ImGui::InputTextWithHint("##ProcessName", hint, processName, sizeof(processName), ImGuiInputTextFlags_EnterReturnsTrue))
+				{
+					systemWatcher.StopWatch();
+					for (Process* process : processes)
+					{
+						delete process;
+					}
+					processes.clear();
+					queries.clear();
+					systemWatcher.StartWatch(processName, onProcessCreated, onProcessTerminated);
+				}
+
+				ImGui::SameLine();
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.0f, 0.0f, 1.0f));
+				ImGui::AlignTextToFramePadding();
+				ImGui::TextUnformatted(ICON_MDI_TARGET);
+				ImGui::PopStyleColor();
+
+				ImGui::TableNextColumn();
+				ImGui::AlignTextToFramePadding();
+				ImGui::TextUnformatted("Refresh Rate");
+				ImGui::SetNextItemWidth(100.f);
+				ImGui::SliderFloat("##RefreshRate", &maxTimer, 0.01f, 1.f, "%.2fs");
+
+				ImGui::TableNextColumn();
+				ImVec2 buttonSize = ImVec2(ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
+				ImGui::SetWindowFontScale(0.9f);
+				if (ImGui::Button(ICON_MDI_COG, buttonSize))
+				{
+				}
+				ImGui::SetWindowFontScale(1.0f);
+
+				ImGui::EndTable();
+			}
+			ImGui::PopStyleVar();
+
+			// ImGui::Checkbox("Show Demo", &show_demo_window);
 
 			ImGui::EndMainMenuBar();
 		}
@@ -204,24 +392,11 @@ int main(int argc, char** argv)
 		ImVec2 pos(0, ImGui::GetFrameHeight());
 		ImGui::SetNextWindowPos(pos);
 		ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - pos);
-		if (ImGui::Begin("Tmp", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize))
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+		bool opened = ImGui::Begin("Tmp", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize);
+		ImGui::PopStyleVar();
+		if (opened)
 		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::TextUnformatted("Process Name");
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(-1);
-			if (ImGui::InputText("##ProcessName", processName, sizeof(processName), ImGuiInputTextFlags_EnterReturnsTrue))
-			{
-				systemWatcher.StopWatch();
-				for (Process* process : processes)
-				{
-					delete process;
-				}
-				processes.clear();
-				queries.clear();
-				systemWatcher.StartWatch(processName, onProcessCreated, onProcessTerminated);
-			}
-
 			if (ImGui::BeginTabBar("##processTabBar"))
 			{
 				processesLock.lock();
@@ -237,208 +412,250 @@ int main(int argc, char** argv)
 							lastTab = i;
 						}
 
-						static PerformanceSnapshot data;
-						static RingBuffer<float>   cpuUsageBuffer(256);
+						static PerformanceSnapshot  data;
+						static RingBuffer<float>    cpuUsageBuffer(256);
+						static uint64_t             maxRam = 0;
+						static RingBuffer<uint64_t> ramBuffer(256);
 						if (update)
 						{
 							data = queries[i].Retrieve(specs);
 							cpuUsageBuffer.PushBack(data.cpuUsage);
-						}
-
-						ImPlot::SetNextAxisLimits(ImAxis_X1, 0, cpuUsageBuffer.GetCapacity(), ImGuiCond_Always);
-						ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0f, 100.0f);
-						if (ImPlot::BeginPlot("CPU", ImVec2(-1, 200), ImPlotAxisFlags_None))
-						{
-							ImPlot::PlotShadedG("CPU%", &ImPlotRingBufferGetter, &cpuUsageBuffer, &ImPlotRingBufferGetterZeroY, &cpuUsageBuffer, cpuUsageBuffer.GetSize());
-							ImPlot::EndPlot();
-						}
-
-						ImGui::Text("CPU: %.2f%%", data.cpuUsage);
-						Time time = AdjustTimeValue(data.time);
-						if (time.d)
-						{
-							ImGui::Text("Elapsed Time: %ud%uh%um%us", time.d, time.h, time.m, time.s);
-						}
-						else if (time.h)
-						{
-							ImGui::Text("Elapsed Time: %uh%um%us", time.h, time.m, time.s);
-						}
-						else if (time.m)
-						{
-							ImGui::Text("Elapsed Time: %um%us", time.m, time.s);
-						}
-						else
-						{
-							ImGui::Text("Elapsed Time: %us", time.s);
-						}
-						ImGui::NewLine();
-						ImGui::Text("Handle Count: %u", data.handleCount);
-						ImGui::Text("Thread Count: %u", data.threadCount);
-						ImGui::NewLine();
-						std::pair adjustedSize = AdjustSizeValue(data.read.bytesPerSec);
-						ImGui::Text("Read Data: %.2f %s/s", adjustedSize.first, adjustedSize.second);
-						ImGui::Text("Read Operations: %.2f/s", data.read.opPerSec);
-						adjustedSize = AdjustSizeValue(data.write.bytesPerSec);
-						ImGui::Text("Write Data: %.2f %s/s", adjustedSize.first, adjustedSize.second);
-						ImGui::Text("Write Operations: %.2f/s", data.write.opPerSec);
-						adjustedSize = AdjustSizeValue(data.other.bytesPerSec);
-						ImGui::Text("Other Data: %.2f %s/s", adjustedSize.first, adjustedSize.second);
-						ImGui::Text("Other Operations: %.2f/s", data.other.opPerSec);
-						ImGui::NewLine();
-						ImGui::Text("Page Faults: %.2f/s", data.pageFaultsPerSec);
-						adjustedSize = AdjustSizeValue(data.privateBytes);
-						ImGui::Text("Private Memory: %.2f %s", adjustedSize.first, adjustedSize.second);
-						adjustedSize = AdjustSizeValue(data.workingSet);
-						ImGui::Text("Working Set: %.2f %s", adjustedSize.first, adjustedSize.second);
-						adjustedSize = AdjustSizeValue(data.virtualBytes);
-						ImGui::Text("Virtual Memory: %.2f %s", adjustedSize.first, adjustedSize.second);
-
-						if (ImGui::CollapsingHeader("Handles", ImGuiTreeNodeFlags_DefaultOpen))
-						{
-							static const char* handleTypeLabels[(uint8_t)Handle::Type::Count] = {
-								"Unknown",
-								"AlpcPort",
-								"Desktop",
-								"Directory",
-								"DxgkSharedResource",
-								"Event",
-								"File",
-								"IoCompletion",
-								"IoCompletionReserve",
-								"IrTimer",
-								"Key",
-								"Mutant",
-								"SchedulerSharedData",
-								"Section",
-								"Semaphore",
-								"Thread",
-								"Timer",
-								"TpWorkerFactory",
-								"WaitCompletionPacket",
-								"WindowStation",
-							};
-
-							ImGui::AlignTextToFramePadding();
-							ImGui::TextUnformatted("Type");
-							ImGui::SameLine();
-							ImGui::SetNextItemWidth(320);
-							static std::string typeFilterPreview = "All";
-							static uint32_t    typeMask = std::numeric_limits<uint32_t>::max();
-							if (ImGui::BeginCombo("##Type", typeFilterPreview.c_str()))
+							ramBuffer.PushBack(data.privateBytes);
+							if (data.privateBytes > maxRam)
 							{
-								if (ImGui::Button("All"))
+								maxRam = data.privateBytes;
+							}
+						}
+
+						if (ImGui::Button(ICON_MDI_SKULL_CROSSBONES " Kill me !"))
+						{
+						}
+						ImGui::SameLine(0.0, 15.0f);
+						ImGui::Text("CPU:  %.2f%%", data.cpuUsage);
+						ImGui::SameLine(0.0, 15.0f);
+						std::pair<double, const char*> adjustedSize = AdjustSizeValue(data.privateBytes);
+						ImGui::Text("RAM:  %.2f %s", adjustedSize.first, adjustedSize.second);
+
+						if (ImGui::BeginChild("SubWindowForScroll", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_NoBackground))
+						{
+							if (ImGui::BeginChild("CollapsablePlotWindowCPU", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_None))
+							{
+								ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyle().Colors[ImGuiCol_FrameBg]);
+								ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGui::GetStyle().Colors[ImGuiCol_FrameBgHovered]);
+								ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGui::GetStyle().Colors[ImGuiCol_FrameBgActive]);
+								bool opened = ImGui::CollapsingHeader("CPU", ImGuiTreeNodeFlags_DefaultOpen);
+								ImGui::PopStyleColor(3);
+								if (opened)
 								{
-									typeMask = std::numeric_limits<uint32_t>::max();
-									typeFilterPreview = "All";
+									ImPlot::SetNextAxisLimits(ImAxis_X1, 0, cpuUsageBuffer.GetCapacity(), ImGuiCond_Always);
+									ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0f, 100.0f, ImGuiCond_Always);
+									if (ImPlot::BeginPlot("##CPU_Plot", ImVec2(-1, 200), ImPlotFlags_NoFrame))
+									{
+										ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, 0);
+										ImPlot::PlotShadedG("CPU (%)", &ImPlotRingBufferGetterFloat, &cpuUsageBuffer, &ImPlotRingBufferGetterFloatZeroY, &cpuUsageBuffer,
+										                    cpuUsageBuffer.GetSize());
+										ImPlot::EndPlot();
+									}
 								}
+							}
+							ImGui::EndChild();
+
+							if (ImGui::BeginChild("CollapsablePlotWindowRAM", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_None))
+							{
+								ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyle().Colors[ImGuiCol_FrameBg]);
+								ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGui::GetStyle().Colors[ImGuiCol_FrameBgHovered]);
+								ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGui::GetStyle().Colors[ImGuiCol_FrameBgActive]);
+								bool opened = ImGui::CollapsingHeader("RAM", ImGuiTreeNodeFlags_DefaultOpen);
+								ImGui::PopStyleColor(3);
+								if (opened)
+								{
+									ImPlot::SetNextAxisLimits(ImAxis_X1, 0, cpuUsageBuffer.GetCapacity(), ImGuiCond_Always);
+									ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0f, (double)maxRam * 1.3f, ImGuiCond_Always);
+									if (ImPlot::BeginPlot("##RAM_Plot", ImVec2(-1, 200), ImPlotFlags_NoFrame))
+									{
+										// ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
+										ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, 0);
+										/*
+										static const double customTicks[] = {1, 1000, 1000000, 1000000000, 1000000000000};
+										static const char*  customLabels[] = {"B", "KB", "MB", "GB", "TB"};
+										ImPlot::SetupAxisTicks(ImAxis_Y1, customTicks, IM_ARRAYSIZE(customTicks), customLabels);
+										*/
+										ImPlot::SetupMouseText(ImPlotLocation_SouthEast, ImPlotMouseTextFlags_NoAuxAxes);
+										ImPlot::SetupAxisFormat(ImAxis_Y1, &SizeFormatter);
+										ImPlot::PlotShadedG("RAM", &ImPlotRingBufferGetterUInt64, &ramBuffer, &ImPlotRingBufferGetterUInt64ZeroY, &ramBuffer,
+										                    cpuUsageBuffer.GetSize());
+										ImPlot::EndPlot();
+									}
+								}
+							}
+							ImGui::EndChild();
+
+							ImGui::Text("CPU: %.2f%%", data.cpuUsage);
+							Time time = AdjustTimeValue(data.time);
+							if (time.d)
+							{
+								ImGui::Text("Elapsed Time: %ud%uh%um%us", time.d, time.h, time.m, time.s);
+							}
+							else if (time.h)
+							{
+								ImGui::Text("Elapsed Time: %uh%um%us", time.h, time.m, time.s);
+							}
+							else if (time.m)
+							{
+								ImGui::Text("Elapsed Time: %um%us", time.m, time.s);
+							}
+							else
+							{
+								ImGui::Text("Elapsed Time: %us", time.s);
+							}
+							ImGui::NewLine();
+							ImGui::Text("Handle Count: %u", data.handleCount);
+							ImGui::Text("Thread Count: %u", data.threadCount);
+							ImGui::NewLine();
+							std::pair adjustedSize = AdjustSizeValue(data.read.bytesPerSec);
+							ImGui::Text("Read Data: %.2f %s/s", adjustedSize.first, adjustedSize.second);
+							ImGui::Text("Read Operations: %.2f/s", data.read.opPerSec);
+							adjustedSize = AdjustSizeValue(data.write.bytesPerSec);
+							ImGui::Text("Write Data: %.2f %s/s", adjustedSize.first, adjustedSize.second);
+							ImGui::Text("Write Operations: %.2f/s", data.write.opPerSec);
+							adjustedSize = AdjustSizeValue(data.other.bytesPerSec);
+							ImGui::Text("Other Data: %.2f %s/s", adjustedSize.first, adjustedSize.second);
+							ImGui::Text("Other Operations: %.2f/s", data.other.opPerSec);
+							ImGui::NewLine();
+							ImGui::Text("Page Faults: %.2f/s", data.pageFaultsPerSec);
+							adjustedSize = AdjustSizeValue(data.privateBytes);
+							ImGui::Text("Private Memory: %.2f %s", adjustedSize.first, adjustedSize.second);
+							adjustedSize = AdjustSizeValue(data.workingSet);
+							ImGui::Text("Working Set: %.2f %s", adjustedSize.first, adjustedSize.second);
+							adjustedSize = AdjustSizeValue(data.virtualBytes);
+							ImGui::Text("Virtual Memory: %.2f %s", adjustedSize.first, adjustedSize.second);
+
+							if (ImGui::CollapsingHeader("Handles", ImGuiTreeNodeFlags_DefaultOpen))
+							{
+								ImGui::AlignTextToFramePadding();
+								ImGui::TextUnformatted("Type");
 								ImGui::SameLine();
-								if (ImGui::Button("None"))
+								ImGui::SetNextItemWidth(320);
+								static std::string typeFilterPreview = "All";
+								static uint32_t    typeMask = std::numeric_limits<uint32_t>::max();
+								if (ImGui::BeginCombo("##Type", typeFilterPreview.c_str()))
 								{
-									typeMask = 0;
-									typeFilterPreview = "None";
-								}
-								ImGui::Separator();
-
-								for (uint8_t index = 0; index < (uint8_t)Handle::Type::Count; ++index)
-								{
-									bool checked = typeMask & (1 << index);
-									if (ImGui::Checkbox(handleTypeLabels[index], &checked))
+									if (ImGui::Button("All"))
 									{
-										if (checked)
+										typeMask = std::numeric_limits<uint32_t>::max();
+										typeFilterPreview = "All";
+									}
+									ImGui::SameLine();
+									if (ImGui::Button("None"))
+									{
+										typeMask = 0;
+										typeFilterPreview = "None";
+									}
+									ImGui::Separator();
+
+									for (uint8_t index = 0; index < (uint8_t)Handle::Type::Count; ++index)
+									{
+										bool checked = typeMask & (1 << index);
+										if (ImGui::Checkbox(Handle::typeLabels[index], &checked))
 										{
-											typeMask |= (1 << index);
+											if (checked)
+											{
+												typeMask |= (1 << index);
+											}
+											else
+											{
+												typeMask &= ~(1 << index);
+											}
+											typeFilterPreview = "Mix";
 										}
-										else
+									}
+
+									ImGui::EndCombo();
+								}
+
+								ImGui::SameLine();
+
+								ImGui::AlignTextToFramePadding();
+								ImGui::TextUnformatted("Info");
+								ImGui::SameLine();
+								ImGui::SetNextItemWidth(320);
+								static char infoBuffer[2048] = {'\0'};
+								ImGui::InputText("##Info", infoBuffer, sizeof(infoBuffer));
+
+								ImGui::SameLine();
+
+								bool forceHandleSort = false;
+								if (ImGui::Button("Refresh"))
+								{
+									for (Handle* handle : process->handles)
+									{
+										delete handle;
+									}
+									process->handles.clear();
+
+									HandleQuery::GenerateHandles(process->pid, process->handles);
+									forceHandleSort = true;
+								}
+
+								if (ImGui::BeginTable("Handles", 3,
+								                      ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerV |
+								                          ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY))
+								{
+									ImGui::TableSetupColumn("Id", ImGuiTableColumnFlags_WidthFixed);
+									ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultSort);
+									ImGui::TableSetupColumn("Info", ImGuiTableColumnFlags_WidthStretch);
+									ImGui::TableHeadersRow();
+
+									if (ImGui::TableGetSortSpecs()->SpecsDirty || forceHandleSort)
+									{
+										ImGui::TableGetSortSpecs()->SpecsDirty = false;
+
+										bool ascending = ImGui::TableGetSortSpecs()->Specs[0].SortDirection == ImGuiSortDirection_Ascending;
+										if (ImGui::TableGetSortSpecs()->Specs[0].ColumnIndex == 0)
 										{
-											typeMask &= ~(1 << index);
+											std::sort(process->handles.begin(), process->handles.end(), [ascending](Handle* a, Handle* b) { return (a->id < b->id) == ascending; });
 										}
-										typeFilterPreview = "Mix";
+										else if (ImGui::TableGetSortSpecs()->Specs[0].ColumnIndex == 1)
+										{
+											std::sort(process->handles.begin(), process->handles.end(),
+											          [ascending](Handle* a, Handle* b) { return (a->type < b->type) == ascending; });
+										}
+										else if (ImGui::TableGetSortSpecs()->Specs[0].ColumnIndex == 2)
+										{
+											std::sort(process->handles.begin(), process->handles.end(),
+											          [ascending](Handle* a, Handle* b) { return (a->info < b->info) == ascending; });
+										}
 									}
+
+									for (Handle* handle : process->handles)
+									{
+										if ((typeMask & (1 << (uint32_t)handle->type)) == 0)
+										{
+											continue;
+										}
+
+										if (infoBuffer[0] != '\0' && handle->info.find(infoBuffer) == std::string::npos)
+										{
+											continue;
+										}
+
+										ImGui::TableNextRow();
+
+										ImGui::TableNextColumn();
+										ImGui::Text("%jX", (uint64_t)handle->id);
+
+										ImGui::TableNextColumn();
+										ImGui::TextUnformatted(Handle::typeLabels[(uint8_t)handle->type]);
+
+										ImGui::TableNextColumn();
+										ImGui::TextUnformatted(handle->info.c_str());
+									}
+
+									ImGui::EndTable();
 								}
-
-								ImGui::EndCombo();
-							}
-
-							ImGui::SameLine();
-
-							ImGui::AlignTextToFramePadding();
-							ImGui::TextUnformatted("Info");
-							ImGui::SameLine();
-							ImGui::SetNextItemWidth(320);
-							static char infoBuffer[2048] = {'\0'};
-							ImGui::InputText("##Info", infoBuffer, sizeof(infoBuffer));
-
-							ImGui::SameLine();
-
-							bool forceHandleSort = false;
-							if (ImGui::Button("Refresh"))
-							{
-								for (Handle* handle : process->handles)
-								{
-									delete handle;
-								}
-								process->handles.clear();
-
-								HandleQuery::GenerateHandles(process->pid, process->handles);
-								forceHandleSort = true;
-							}
-
-							if (ImGui::BeginTable("Handles", 3,
-							                      ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerV |
-							                          ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY))
-							{
-								ImGui::TableSetupColumn("Id", ImGuiTableColumnFlags_WidthFixed);
-								ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultSort);
-								ImGui::TableSetupColumn("Info", ImGuiTableColumnFlags_WidthStretch);
-								ImGui::TableHeadersRow();
-
-								if (ImGui::TableGetSortSpecs()->SpecsDirty || forceHandleSort)
-								{
-									ImGui::TableGetSortSpecs()->SpecsDirty = false;
-
-									bool ascending = ImGui::TableGetSortSpecs()->Specs[0].SortDirection == ImGuiSortDirection_Ascending;
-									if (ImGui::TableGetSortSpecs()->Specs[0].ColumnIndex == 0)
-									{
-										std::sort(process->handles.begin(), process->handles.end(), [ascending](Handle* a, Handle* b) { return (a->id < b->id) == ascending; });
-									}
-									else if (ImGui::TableGetSortSpecs()->Specs[0].ColumnIndex == 1)
-									{
-										std::sort(process->handles.begin(), process->handles.end(), [ascending](Handle* a, Handle* b) { return (a->type < b->type) == ascending; });
-									}
-									else if (ImGui::TableGetSortSpecs()->Specs[0].ColumnIndex == 2)
-									{
-										std::sort(process->handles.begin(), process->handles.end(), [ascending](Handle* a, Handle* b) { return (a->info < b->info) == ascending; });
-									}
-								}
-
-								for (Handle* handle : process->handles)
-								{
-									if ((typeMask & (1 << (uint32_t)handle->type)) == 0)
-									{
-										continue;
-									}
-
-									if (infoBuffer[0] != '\0' && handle->info.find(infoBuffer) == std::string::npos)
-									{
-										continue;
-									}
-
-									ImGui::TableNextRow();
-
-									ImGui::TableNextColumn();
-									ImGui::Text("%jX", (uint64_t)handle->id);
-
-									ImGui::TableNextColumn();
-									ImGui::TextUnformatted(handleTypeLabels[(uint8_t)handle->type]);
-
-									ImGui::TableNextColumn();
-									ImGui::TextUnformatted(handle->info.c_str());
-								}
-
-								ImGui::EndTable();
 							}
 						}
-
+						ImGui::EndChild();
 						ImGui::EndTabItem();
 					}
 				}

@@ -31,6 +31,28 @@ struct Handle
 
 		Count
 	};
+	static inline const char* typeLabels[(uint8_t)Type::Count] = {
+		"Unknown",
+		"AlpcPort",
+		"Desktop",
+		"Directory",
+		"DxgkSharedResource",
+		"Event",
+		"File",
+		"IoCompletion",
+		"IoCompletionReserve",
+		"IrTimer",
+		"Key",
+		"Mutant",
+		"SchedulerSharedData",
+		"Section",
+		"Semaphore",
+		"Thread",
+		"Timer",
+		"TpWorkerFactory",
+		"WaitCompletionPacket",
+		"WindowStation",
+	};
 
 	using Id = HANDLE;
 

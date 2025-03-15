@@ -32,6 +32,10 @@ list(APPEND Srcs ${GeneratedFileH})
 list(APPEND Includes ${GeneratedFileH})
 list(APPEND Srcs ${GeneratedFileCPP})
 
+if (WIN32)
+	list(APPEND Srcs Icon/resource.rc)
+endif()
+
 assign_source_group(${Srcs}) # for VS
 
 add_executable(ProcTracker ${Srcs} ${Includes})
