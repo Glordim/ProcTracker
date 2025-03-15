@@ -95,7 +95,7 @@ void SetupDarkTheme()
 	colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.44f, 0.44f, 0.44f, 0.29f);
 	colors[ImGuiCol_ResizeGripActive] = ImVec4(0.40f, 0.44f, 0.47f, 1.00f);
 	colors[ImGuiCol_Tab] = ImVec4(0.17f, 0.18f, 0.2f, 1.0f);
-	colors[ImGuiCol_TabHovered] = ImVec4(0.17f, 0.18f, 0.2f, 1.0f);
+	colors[ImGuiCol_TabHovered] = ImVec4(0.22f, 0.23f, 0.25f, 1.0f);
 	colors[ImGuiCol_TabSelected] = ImVec4(0.22f, 0.23f, 0.25f, 1.0f);
 	colors[ImGuiCol_TabDimmed] = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
 	colors[ImGuiCol_TabDimmedSelected] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
@@ -110,7 +110,7 @@ void SetupDarkTheme()
 	colors[ImGuiCol_TableBorderLight] = ImVec4(0.28f, 0.28f, 0.28f, 0.29f);
 	colors[ImGuiCol_TableRowBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
 	colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.00f, 1.00f, 1.00f, 0.06f);
-	colors[ImGuiCol_TextSelectedBg] = ImVec4(0.20f, 0.22f, 0.23f, 1.00f);
+	colors[ImGuiCol_TextSelectedBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.25f);
 	colors[ImGuiCol_DragDropTarget] = ImVec4(0.33f, 0.67f, 0.86f, 1.00f);
 	// colors[ImGuiCol_NavHighlight] = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
 	colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 0.00f, 0.00f, 0.70f);
