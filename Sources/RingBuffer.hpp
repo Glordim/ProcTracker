@@ -9,6 +9,7 @@ class RingBuffer
 {
 public:
 	RingBuffer(uint32_t capacity);
+	RingBuffer(uint32_t capacity, const _Type_& fill);
 	RingBuffer(const RingBuffer&) = delete;
 	RingBuffer(RingBuffer&&) = delete;
 	~RingBuffer();
@@ -25,6 +26,8 @@ public:
 
 	uint32_t GetSize() const;
 	bool     IsFull() const;
+
+	void Fill(const _Type_& element);
 
 	_Type_*  GetRawData() const;
 	uint32_t GetRawIndex(uint32_t index) const;
@@ -47,6 +50,13 @@ template <typename _Type_>
 RingBuffer<_Type_>::RingBuffer(uint32_t capacity)
 {
 	Reserve(capacity);
+}
+
+template <typename _Type_>
+RingBuffer<_Type_>::RingBuffer(uint32_t capacity, const _Type_& fill)
+{
+	Reserve(capacity);
+	Fill(fill);
 }
 
 template <typename _Type_>
@@ -228,5 +238,14 @@ inline _Type_* RingBuffer<_Type_>::GetSecondSegmentData() const
 	else
 	{
 		return _data;
+	}
+}
+
+template <typename _Type_>
+void RingBuffer<_Type_>::Fill(const _Type_& element)
+{
+	for (uint32_t index = 0; index < _capacity; ++index)
+	{
+		PushBack(element);
 	}
 }

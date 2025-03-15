@@ -31,25 +31,25 @@
 ImPlotPoint ImPlotRingBufferGetterFloat(int index, void* user_data)
 {
 	RingBuffer<float>* ringBuffer = static_cast<RingBuffer<float>*>(user_data);
-	return ImPlotPoint(ringBuffer->GetCapacity() - index, ringBuffer->GetRawData()[ringBuffer->GetRawIndex(index)]);
+	return ImPlotPoint(index, ringBuffer->GetRawData()[ringBuffer->GetRawIndex(index)]);
 }
 
 ImPlotPoint ImPlotRingBufferGetterFloatZeroY(int index, void* user_data)
 {
 	RingBuffer<float>* ringBuffer = static_cast<RingBuffer<float>*>(user_data);
-	return ImPlotPoint(ringBuffer->GetCapacity() - index, 0.0f);
+	return ImPlotPoint(index, 0.0f);
 }
 
 ImPlotPoint ImPlotRingBufferGetterUInt64(int index, void* user_data)
 {
 	RingBuffer<uint64_t>* ringBuffer = static_cast<RingBuffer<uint64_t>*>(user_data);
-	return ImPlotPoint(ringBuffer->GetCapacity() - index, ringBuffer->GetRawData()[ringBuffer->GetRawIndex(index)]);
+	return ImPlotPoint(index, ringBuffer->GetRawData()[ringBuffer->GetRawIndex(index)]);
 }
 
 ImPlotPoint ImPlotRingBufferGetterUInt64ZeroY(int index, void* user_data)
 {
 	RingBuffer<uint64_t>* ringBuffer = static_cast<RingBuffer<uint64_t>*>(user_data);
-	return ImPlotPoint(ringBuffer->GetCapacity() - index, 0.0f);
+	return ImPlotPoint(index, 0.0f);
 }
 
 int SizeFormatter(double value, char* buff, int size, void* user_data)
@@ -406,16 +406,20 @@ int main(int argc, char** argv)
 					static uint32_t lastTab {0};
 					if (ImGui::BeginTabItem(std::format("{}", process->pid).data()))
 					{
+						static PerformanceSnapshot  data;
+						static RingBuffer<float>    cpuUsageBuffer(256, 0.0f);
+						static uint64_t             maxRam = 0;
+						static RingBuffer<uint64_t> ramBuffer(256, 0.0f);
+
 						if (lastTab != i)
 						{
 							update = true;
 							lastTab = i;
+							cpuUsageBuffer.Fill(0.0f);
+							ramBuffer.Fill(0.0f);
+							maxRam = 0;
 						}
 
-						static PerformanceSnapshot  data;
-						static RingBuffer<float>    cpuUsageBuffer(256);
-						static uint64_t             maxRam = 0;
-						static RingBuffer<uint64_t> ramBuffer(256);
 						if (update)
 						{
 							data = queries[i].Retrieve(specs);
@@ -447,7 +451,7 @@ int main(int argc, char** argv)
 								ImGui::PopStyleColor(3);
 								if (opened)
 								{
-									ImPlot::SetNextAxisLimits(ImAxis_X1, 0, cpuUsageBuffer.GetCapacity(), ImGuiCond_Always);
+									ImPlot::SetNextAxisLimits(ImAxis_X1, 0, cpuUsageBuffer.GetSize(), ImGuiCond_Always);
 									ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0f, 100.0f, ImGuiCond_Always);
 									if (ImPlot::BeginPlot("##CPU_Plot", ImVec2(-1, 200), ImPlotFlags_NoFrame))
 									{
@@ -469,7 +473,7 @@ int main(int argc, char** argv)
 								ImGui::PopStyleColor(3);
 								if (opened)
 								{
-									ImPlot::SetNextAxisLimits(ImAxis_X1, 0, cpuUsageBuffer.GetCapacity(), ImGuiCond_Always);
+									ImPlot::SetNextAxisLimits(ImAxis_X1, 0, cpuUsageBuffer.GetSize(), ImGuiCond_Always);
 									ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0f, (double)maxRam * 1.3f, ImGuiCond_Always);
 									if (ImPlot::BeginPlot("##RAM_Plot", ImVec2(-1, 200), ImPlotFlags_NoFrame))
 									{
