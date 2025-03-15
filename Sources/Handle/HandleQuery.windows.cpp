@@ -1,45 +1,48 @@
 #include "Pch.hpp"
-#include "HandleQuery.hpp"
 #include "Handle.hpp"
+#include "HandleQuery.hpp"
 
+#include <Ntstatus.h>
 #include <Windows.h>
 #include <winternl.h>
-#include <Ntstatus.h>
 
-#include <unordered_map>
 #include <functional>
+#include <unordered_map>
 
 #pragma comment(lib, "ntdll.lib")
 
 // TODO may be add https://github.com/winsiderss/phnt in deps ?
 struct SYSTEM_HANDLE
 {
-	USHORT UniqueProcessId;
-	USHORT CreatorBackTraceIndex;
-	UCHAR ObjectTypeNumber;
-	UCHAR Flags;
-	USHORT Handle;
-	PVOID Object;
+	USHORT      UniqueProcessId;
+	USHORT      CreatorBackTraceIndex;
+	UCHAR       ObjectTypeNumber;
+	UCHAR       Flags;
+	USHORT      Handle;
+	PVOID       Object;
 	ACCESS_MASK GrantedAccess;
 };
 
 static constexpr SYSTEM_INFORMATION_CLASS SystemHandleInformation = (SYSTEM_INFORMATION_CLASS)16;
+
 struct SYSTEM_HANDLE_INFORMATION
 {
-	ULONG HandleCount;
+	ULONG         HandleCount;
 	SYSTEM_HANDLE Handles[1];
 };
 
 static constexpr OBJECT_INFORMATION_CLASS ObjectNameInformation = (OBJECT_INFORMATION_CLASS)1;
+
 struct OBJECT_NAME_INFORMATION
 {
 	UNICODE_STRING Name;
 };
+
 //
 
 std::wstring GetHandleName(HANDLE handle)
 {
-	BYTE nameBuffer[1024];
+	BYTE  nameBuffer[1024];
 	ULONG returnLength;
 
 	NTSTATUS status = NtQueryObject(handle, (OBJECT_INFORMATION_CLASS)ObjectNameInformation, nameBuffer, sizeof(nameBuffer), &returnLength);
@@ -72,9 +75,9 @@ void ConvertNtPathToWin32Path(std::wstring& ntPath)
 
 	if (ntPath.starts_with(L"\\Device\\HarddiskVolume"))
 	{
-		size_t nextSeparator = ntPath.find('\\', 22);
+		size_t       nextSeparator = ntPath.find('\\', 22);
 		std::wstring ntDevice = ntPath.substr(0, nextSeparator);
-		auto it = ntDeviceToWin32Mapping.find(ntDevice);
+		auto         it = ntDeviceToWin32Mapping.find(ntDevice);
 		if (it != ntDeviceToWin32Mapping.end())
 		{
 			ntPath.replace(0, nextSeparator, it->second);
@@ -85,7 +88,7 @@ void ConvertNtPathToWin32Path(std::wstring& ntPath)
 std::string WStringToString(const std::wstring& wstr)
 {
 	std::string str;
-	size_t size;
+	size_t      size;
 	str.resize(wstr.length());
 	wcstombs_s(&size, &str[0], str.size() + 1, wstr.c_str(), wstr.size());
 	return str;
@@ -193,29 +196,29 @@ Handle* CreateWindowStationHandle(HANDLE handle)
 void HandleQuery::GenerateHandles(uint64_t pid, std::vector<Handle*>& handles)
 {
 	static std::unordered_map<std::wstring, std::function<Handle*(HANDLE)>> handleFactory = {
-		{ L"AlpcPort", &CreateAlpcPortHandle },
-		{ L"Desktop", &CreateDesktopHandle },
-		{ L"Directory", &CreateDirectoryHandle },
-		{ L"DxgkSharedResource", &CreateDxgkSharedResourceHandle },
-		{ L"Event", &CreateEventHandle },
-		{ L"File", &CreateFileHandle },
-		{ L"IoCompletion", &CreateIoCompletionHandle },
-		{ L"IoCompletionReserve", &CreateIoCompletionReserveHandle },
-		{ L"IrTimer", &CreateIrTimerHandle },
-		{ L"Key", &CreateKeyHandle },
-		{ L"Mutant", &CreateMutantHandle },
-		{ L"SchedulerSharedData", &CreateSchedulerSharedDataHandle },
-		{ L"Section", &CreateSectionHandle },
-		{ L"Semaphore", &CreateSemaphoreHandle },
-		{ L"Thread", &CreateThreadHandle },
-		{ L"Timer", &CreateTimerHandle },
-		{ L"TpWorkerFactory", &CreateTpWorkerFactoryHandle },
-		{ L"WaitCompletionPacket", &CreateWaitCompletionPacketHandle },
-		{ L"WindowStation", &CreateWindowStationHandle },
+		{L"AlpcPort", &CreateAlpcPortHandle},
+		{L"Desktop", &CreateDesktopHandle},
+		{L"Directory", &CreateDirectoryHandle},
+		{L"DxgkSharedResource", &CreateDxgkSharedResourceHandle},
+		{L"Event", &CreateEventHandle},
+		{L"File", &CreateFileHandle},
+		{L"IoCompletion", &CreateIoCompletionHandle},
+		{L"IoCompletionReserve", &CreateIoCompletionReserveHandle},
+		{L"IrTimer", &CreateIrTimerHandle},
+		{L"Key", &CreateKeyHandle},
+		{L"Mutant", &CreateMutantHandle},
+		{L"SchedulerSharedData", &CreateSchedulerSharedDataHandle},
+		{L"Section", &CreateSectionHandle},
+		{L"Semaphore", &CreateSemaphoreHandle},
+		{L"Thread", &CreateThreadHandle},
+		{L"Timer", &CreateTimerHandle},
+		{L"TpWorkerFactory", &CreateTpWorkerFactoryHandle},
+		{L"WaitCompletionPacket", &CreateWaitCompletionPacketHandle},
+		{L"WindowStation", &CreateWindowStationHandle},
 	};
 
-	ULONG bufferSize = 1024 * 8;
-	PVOID buffer = malloc(bufferSize);
+	ULONG    bufferSize = 1024 * 8;
+	PVOID    buffer = malloc(bufferSize);
 	NTSTATUS status;
 	while ((status = NtQuerySystemInformation(SystemHandleInformation, buffer, bufferSize, &bufferSize)) == STATUS_INFO_LENGTH_MISMATCH)
 	{
@@ -235,7 +238,7 @@ void HandleQuery::GenerateHandles(uint64_t pid, std::vector<Handle*>& handles)
 		const SYSTEM_HANDLE& ntHandle = handleInfo->Handles[i];
 		if (ntHandle.UniqueProcessId == pid)
 		{
-			BYTE buffer[1024];
+			BYTE  buffer[1024];
 			ULONG returnLength;
 
 			NTSTATUS status = NtQueryObject((HANDLE)ntHandle.Handle, ObjectTypeInformation, buffer, sizeof(buffer), &returnLength);

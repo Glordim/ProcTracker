@@ -7,7 +7,7 @@ class Handle;
 
 struct Process
 {
-	const uint64_t pid;
-	std::string const name;
+	const uint64_t       pid;
+	const std::string    name;
 	std::vector<Handle*> handles;
 };

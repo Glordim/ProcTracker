@@ -38,11 +38,9 @@ struct Handle
 	: type(type)
 	, id(id)
 	, info(info)
-	{
+	{}
 
-	}
-
-	const Type			type;
-	const Id			id;
-	const std::string	info;
+	const Type        type;
+	const Id          id;
+	const std::string info;
 };

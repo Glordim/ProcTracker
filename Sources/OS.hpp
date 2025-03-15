@@ -9,6 +9,6 @@ public:
 	static void Terminate();
 
 #if defined(_WIN32)
-	static std::string	GetLastWin32ErrorMessage();
+	static std::string GetLastWin32ErrorMessage();
 #endif
 };

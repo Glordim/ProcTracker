@@ -2,9 +2,9 @@
 #include "OS.hpp"
 
 #define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#include <DbgHelp.h>
 #include <comdef.h>
+#include <DbgHelp.h>
+#include <Windows.h>
 
 #include <iostream>
 
@@ -39,17 +39,10 @@ void OS::Terminate()
 std::string OS::GetLastWin32ErrorMessage()
 {
 	LPVOID lpMsgBuf;
-	DWORD dw = GetLastError();
+	DWORD  dw = GetLastError();
 
-	::FormatMessage(
-		FORMAT_MESSAGE_ALLOCATE_BUFFER |
-		FORMAT_MESSAGE_FROM_SYSTEM |
-		FORMAT_MESSAGE_IGNORE_INSERTS,
-		NULL,
-		dw,
-		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		(LPTSTR)&lpMsgBuf,
-		0, NULL);
+	::FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+	                (LPTSTR)&lpMsgBuf, 0, NULL);
 
 	std::string message = (char*)lpMsgBuf;
 

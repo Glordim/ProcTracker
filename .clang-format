@@ -50,9 +50,16 @@ RemoveParentheses: ReturnStatement
 RemoveSemicolon: true
 SeparateDefinitionBlocks: Always
 ShortNamespaceLines: 10000000 # todo
-SortIncludes: CaseInsensitive
+SpacesInBraces: true
 SpaceBeforeCpp11BracedList: true
 SpacesInContainerLiterals: false
+IncludeBlocks: Preserve
+IncludeCategories:
+  - Regex: "Pch\\.hpp"
+    Priority: -1
+  - Regex: ".*"
+    Priority: 0
+SortIncludes: CaseInsensitive
 Standard: c++20
 TabWidth: 4
 UseTab: AlignWithSpaces

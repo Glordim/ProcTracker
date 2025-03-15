@@ -1,6 +1,6 @@
-#include "SystemWatcher.hpp"
-#include "OS.hpp"
 #include "Pch.hpp"
+#include "OS.hpp"
+#include "SystemWatcher.hpp"
 
 #include <comdef.h>
 #include <Wbemidl.h>

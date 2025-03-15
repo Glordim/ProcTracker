@@ -227,7 +227,7 @@ int main(int argc, char** argv)
 				processesLock.lock();
 				for (uint32_t i {0}; i < processes.size(); ++i)
 				{
-					Process* process = processes[i];
+					Process*        process = processes[i];
 					static uint32_t lastTab {0};
 					if (ImGui::BeginTabItem(std::format("{}", process->pid).data()))
 					{
@@ -238,7 +238,7 @@ int main(int argc, char** argv)
 						}
 
 						static PerformanceSnapshot data;
-						static RingBuffer<float> cpuUsageBuffer(256);
+						static RingBuffer<float>   cpuUsageBuffer(256);
 						if (update)
 						{
 							data = queries[i].Retrieve(specs);
@@ -323,7 +323,7 @@ int main(int argc, char** argv)
 							ImGui::SameLine();
 							ImGui::SetNextItemWidth(320);
 							static std::string typeFilterPreview = "All";
-							static uint32_t typeMask = std::numeric_limits<uint32_t>::max();
+							static uint32_t    typeMask = std::numeric_limits<uint32_t>::max();
 							if (ImGui::BeginCombo("##Type", typeFilterPreview.c_str()))
 							{
 								if (ImGui::Button("All"))
@@ -365,7 +365,7 @@ int main(int argc, char** argv)
 							ImGui::TextUnformatted("Info");
 							ImGui::SameLine();
 							ImGui::SetNextItemWidth(320);
-							static char infoBuffer[2048] = { '\0' };
+							static char infoBuffer[2048] = {'\0'};
 							ImGui::InputText("##Info", infoBuffer, sizeof(infoBuffer));
 
 							ImGui::SameLine();
@@ -383,7 +383,9 @@ int main(int argc, char** argv)
 								forceHandleSort = true;
 							}
 
-							if (ImGui::BeginTable("Handles", 3, ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY))
+							if (ImGui::BeginTable("Handles", 3,
+							                      ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerV |
+							                          ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY))
 							{
 								ImGui::TableSetupColumn("Id", ImGuiTableColumnFlags_WidthFixed);
 								ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultSort);
