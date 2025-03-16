@@ -1,6 +1,7 @@
 #include "Pch.hpp"
 
 #include "PerformanceQuery.hpp"
+#include "Process.hpp"
 
 #include <format>
 #include <string_view>
@@ -41,8 +42,7 @@ namespace
 	};
 }
 
-Query::Query(Process* proc)
-: _proc {proc}
+Query::Query(const Process& proc)
 {
 	uint32_t perfCountersSize = sizeof(perfCounters) / sizeof(std::wstring_view);
 	_pdhCounter.resize(perfCountersSize);
@@ -52,7 +52,7 @@ Query::Query(Process* proc)
 	for (uint32_t i {0}; i < perfCountersSize; ++i)
 	{
 		static wchar_t fmt[4096] {'\0'};
-		swprintf(fmt, 4096, perfCounters[i].data(), proc->name.size() - 4, proc->name.data(), proc->pid);
+		swprintf(fmt, 4096, perfCounters[i].data(), proc.name.size() - 4, proc.name.data(), proc.pid);
 		wprintf(L"%s\n", fmt);
 		res = PdhAddEnglishCounterW(_pdhQuery, fmt, 0, &_pdhCounter[i]);
 	}
@@ -62,7 +62,6 @@ Query::Query(Query&& other)
 {
 	PdhCloseQuery(_pdhQuery);
 
-	_proc = other._proc;
 	_pdhQuery = other._pdhQuery;
 	_pdhCounter = other._pdhCounter;
 
@@ -81,7 +80,6 @@ Query& Query::operator=(Query&& other)
 {
 	PdhCloseQuery(_pdhQuery);
 
-	_proc = other._proc;
 	_pdhQuery = other._pdhQuery;
 	_pdhCounter = other._pdhCounter;
 

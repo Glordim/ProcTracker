@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Process.hpp"
 #include "SystemSpecs.hpp"
 #include <unordered_map>
 #include <utility>
@@ -11,46 +10,47 @@
 #include <PdhMsg.h>
 #endif
 
+struct Process;
+
 struct PerformanceSnapshot
 {
 	struct DataOp
 	{
-		double bytesPerSec;
-		double opPerSec;
+		double bytesPerSec = 0.0f;
+		double opPerSec = 0.0f;
 	};
 
-	double   cpuUsage;
-	double   time;
-	uint32_t handleCount;
-	uint32_t threadCount;
+	double   cpuUsage = 0.0f;
+	double   time = 0.0f;
+	uint32_t handleCount = 0;
+	uint32_t threadCount = 0;
 
 	DataOp read;
 	DataOp write;
 	DataOp other;
 
-	double   pageFaultsPerSec;
-	uint64_t privateBytes;
-	uint64_t workingSet;
-	uint64_t virtualBytes;
+	double   pageFaultsPerSec = 0.0f;
+	uint64_t privateBytes = 0;
+	uint64_t workingSet = 0;
+	uint64_t virtualBytes = 0;
 };
 
 std::pair<double, const char*> AdjustSizeValue(double bytes);
 
 struct Time
 {
-	uint32_t d;
-	uint32_t h;
-	uint32_t m;
-	uint32_t s;
+	uint32_t d = 0;
+	uint32_t h = 0;
+	uint32_t m = 0;
+	uint32_t s = 0;
 };
 
 Time AdjustTimeValue(double sec);
 
 class Query
-
 {
 public:
-	Query(Process* proc);
+	Query(const Process& proc);
 	Query(Query&&);
 	~Query();
 
@@ -59,9 +59,6 @@ public:
 	void Update();
 
 	PerformanceSnapshot Retrieve(const SystemSpecs& specs);
-
-private:
-	Process* _proc;
 
 #ifdef _WIN32
 	static DWORD FmtForCounter(uint32_t idx);
