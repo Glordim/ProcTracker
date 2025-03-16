@@ -17,11 +17,18 @@ public:
 	bool Draw();
 
 private:
-	PerformanceSnapshot  _data;
-	RingBuffer<float>    _cpuUsageRingBuffer;
+	PerformanceSnapshot _data;
+
+	RingBuffer<float> _cpuUsageRingBuffer;
+
 	RingBuffer<uint64_t> _memoryUsageRingBuffer;
-	uint64_t             _maxRam = 0;
-	Query                _performanceQuery;
+	uint64_t             _memoryMax = 0;
+
+	RingBuffer<uint64_t> _ioReadUsageRingBuffer;
+	RingBuffer<uint64_t> _ioWriteUsageRingBuffer;
+	uint64_t             _ioMax = 0;
+
+	Query _performanceQuery;
 
 	Process& _process;
 

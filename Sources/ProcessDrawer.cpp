@@ -63,6 +63,8 @@ ProcessDrawer::ProcessDrawer(Process& process)
 : _process(process)
 , _cpuUsageRingBuffer(256, 0)
 , _memoryUsageRingBuffer(256, 0)
+, _ioReadUsageRingBuffer(256, 0)
+, _ioWriteUsageRingBuffer(256, 0)
 , _title(std::format("{}", process.pid))
 , _performanceQuery(process)
 {}
@@ -72,9 +74,20 @@ void ProcessDrawer::Update()
 	_data = _performanceQuery.Retrieve(_specs);
 	_cpuUsageRingBuffer.PushBack(_data.cpuUsage);
 	_memoryUsageRingBuffer.PushBack(_data.privateBytes);
-	if (_data.privateBytes > _maxRam)
+	if (_data.privateBytes > _memoryMax)
 	{
-		_maxRam = _data.privateBytes;
+		_memoryMax = _data.privateBytes;
+	}
+
+	_ioReadUsageRingBuffer.PushBack(_data.read.bytesPerSec);
+	if (_data.read.bytesPerSec > _ioMax)
+	{
+		_ioMax = _data.read.bytesPerSec;
+	}
+	_ioWriteUsageRingBuffer.PushBack(_data.write.bytesPerSec);
+	if (_data.write.bytesPerSec > _ioMax)
+	{
+		_ioMax = _data.write.bytesPerSec;
 	}
 }
 
@@ -128,21 +141,43 @@ bool ProcessDrawer::Draw()
 				if (opened)
 				{
 					ImPlot::SetNextAxisLimits(ImAxis_X1, 0, nbSamplesToDisplay, ImGuiCond_Always);
-					ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0f, (double)_maxRam * 1.3f, ImGuiCond_Always);
+					ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0f, (double)_memoryMax * 1.3f, ImGuiCond_Always);
 					if (ImPlot::BeginPlot("##Memory_Plot", ImVec2(-1, 200), ImPlotFlags_NoFrame))
 					{
-						// ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
 						ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, 0);
-						/*
-						static const double customTicks[] = {1, 1000, 1000000, 1000000000, 1000000000000};
-						static const char*  customLabels[] = {"B", "KB", "MB", "GB", "TB"};
-						ImPlot::SetupAxisTicks(ImAxis_Y1, customTicks, IM_ARRAYSIZE(customTicks), customLabels);
-						*/
 						ImPlot::SetupMouseText(ImPlotLocation_SouthEast, ImPlotMouseTextFlags_NoAuxAxes);
 						ImPlot::SetupAxisFormat(ImAxis_Y1, &SizeFormatter);
 						RingBufferView ringBufferView(_memoryUsageRingBuffer, _memoryUsageRingBuffer.GetSize() - nbSamplesToDisplay);
 						ImPlot::PlotShadedG("Memory", &ImPlotRingBufferGetterUInt64, &ringBufferView, &ImPlotRingBufferGetterUInt64ZeroY, nullptr,
 						                    _memoryUsageRingBuffer.GetSize());
+						ImPlot::EndPlot();
+					}
+				}
+			}
+			ImGui::EndChild();
+
+			if (ImGui::BeginChild("CollapsablePlotWindowIo", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_None))
+			{
+				ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyle().Colors[ImGuiCol_FrameBg]);
+				ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGui::GetStyle().Colors[ImGuiCol_FrameBgHovered]);
+				ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGui::GetStyle().Colors[ImGuiCol_FrameBgActive]);
+				bool opened = ImGui::CollapsingHeader("IO", ImGuiTreeNodeFlags_DefaultOpen);
+				ImGui::PopStyleColor(3);
+				if (opened)
+				{
+					ImPlot::SetNextAxisLimits(ImAxis_X1, 0, nbSamplesToDisplay, ImGuiCond_Always);
+					ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0f, (double)_ioMax * 1.3f, ImGuiCond_Always);
+					if (ImPlot::BeginPlot("##IO_Plot", ImVec2(-1, 200), ImPlotFlags_NoFrame))
+					{
+						ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, 0);
+						ImPlot::SetupMouseText(ImPlotLocation_SouthEast, ImPlotMouseTextFlags_NoAuxAxes);
+						ImPlot::SetupAxisFormat(ImAxis_Y1, &SizeFormatter);
+						RingBufferView readRingBufferView(_ioReadUsageRingBuffer, _ioReadUsageRingBuffer.GetSize() - nbSamplesToDisplay);
+						ImPlot::PlotShadedG("Read", &ImPlotRingBufferGetterUInt64, &readRingBufferView, &ImPlotRingBufferGetterUInt64ZeroY, nullptr,
+						                    _ioReadUsageRingBuffer.GetSize());
+						RingBufferView writeRingBufferView(_ioWriteUsageRingBuffer, _ioWriteUsageRingBuffer.GetSize() - nbSamplesToDisplay);
+						ImPlot::PlotShadedG("Write", &ImPlotRingBufferGetterUInt64, &writeRingBufferView, &ImPlotRingBufferGetterUInt64ZeroY, nullptr,
+						                    _ioWriteUsageRingBuffer.GetSize());
 						ImPlot::EndPlot();
 					}
 				}
