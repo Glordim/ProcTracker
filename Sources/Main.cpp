@@ -26,29 +26,42 @@
 
 #include "RingBuffer.hpp"
 
+#undef min
 #undef max
+
+template <typename _RingBufferType_>
+struct RingBufferView
+{
+	RingBufferView(const _RingBufferType_& ringBuffer, uint32_t offset)
+	: ringBuffer(ringBuffer)
+	, offset(offset)
+	{}
+
+	const _RingBufferType_& ringBuffer;
+	uint32_t                offset;
+};
 
 ImPlotPoint ImPlotRingBufferGetterFloat(int index, void* user_data)
 {
-	RingBuffer<float>* ringBuffer = static_cast<RingBuffer<float>*>(user_data);
-	return ImPlotPoint(index, ringBuffer->GetRawData()[ringBuffer->GetRawIndex(index)]);
+	RingBufferView<RingBuffer<float>>* ringBufferView = static_cast<RingBufferView<RingBuffer<float>>*>(user_data);
+	uint32_t                           offsetIndex = index + ringBufferView->offset;
+	return ImPlotPoint(index, ringBufferView->ringBuffer.GetRawData()[ringBufferView->ringBuffer.GetRawIndex(offsetIndex)]);
 }
 
 ImPlotPoint ImPlotRingBufferGetterFloatZeroY(int index, void* user_data)
 {
-	RingBuffer<float>* ringBuffer = static_cast<RingBuffer<float>*>(user_data);
 	return ImPlotPoint(index, 0.0f);
 }
 
 ImPlotPoint ImPlotRingBufferGetterUInt64(int index, void* user_data)
 {
-	RingBuffer<uint64_t>* ringBuffer = static_cast<RingBuffer<uint64_t>*>(user_data);
-	return ImPlotPoint(index, ringBuffer->GetRawData()[ringBuffer->GetRawIndex(index)]);
+	RingBufferView<RingBuffer<uint64_t>>* ringBufferView = static_cast<RingBufferView<RingBuffer<uint64_t>>*>(user_data);
+	uint32_t                              offsetIndex = index + ringBufferView->offset;
+	return ImPlotPoint(index, ringBufferView->ringBuffer.GetRawData()[ringBufferView->ringBuffer.GetRawIndex(offsetIndex)]);
 }
 
 ImPlotPoint ImPlotRingBufferGetterUInt64ZeroY(int index, void* user_data)
 {
-	RingBuffer<uint64_t>* ringBuffer = static_cast<RingBuffer<uint64_t>*>(user_data);
 	return ImPlotPoint(index, 0.0f);
 }
 
@@ -163,7 +176,7 @@ int main(int argc, char** argv)
 	}
 
 	// Create SDL window graphics context
-	SDL_Window* window = SDL_CreateWindow("ProcTracker", 1280, 720, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
+	SDL_Window* window = SDL_CreateWindow("ProcTracker", 768, 720, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
 	if (window == nullptr)
 	{
 		printf("Error: SDL_CreateWindow(): %s\n", SDL_GetError());
@@ -258,7 +271,7 @@ int main(int argc, char** argv)
 		});
 	systemWatcher.StartWatch(processName, onProcessCreated, onProcessTerminated);
 
-	float maxTimer = 1.f;
+	float maxTimer = 0.025f;
 	float timer = maxTimer;
 	bool  exit = false;
 	while (exit == false)
@@ -441,6 +454,8 @@ int main(int argc, char** argv)
 						std::pair<double, const char*> adjustedSize = AdjustSizeValue(data.privateBytes);
 						ImGui::Text("RAM:  %.2f %s", adjustedSize.first, adjustedSize.second);
 
+						uint32_t nbSamplesToDisplay = std::min(cpuUsageBuffer.GetSize(), (uint32_t)ImGui::GetWindowWidth() / 5);
+
 						if (ImGui::BeginChild("SubWindowForScroll", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_NoBackground))
 						{
 							if (ImGui::BeginChild("CollapsablePlotWindowCPU", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_None))
@@ -452,12 +467,13 @@ int main(int argc, char** argv)
 								ImGui::PopStyleColor(3);
 								if (opened)
 								{
-									ImPlot::SetNextAxisLimits(ImAxis_X1, 0, cpuUsageBuffer.GetSize(), ImGuiCond_Always);
+									ImPlot::SetNextAxisLimits(ImAxis_X1, 0, nbSamplesToDisplay, ImGuiCond_Always);
 									ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0f, 100.0f, ImGuiCond_Always);
 									if (ImPlot::BeginPlot("##CPU_Plot", ImVec2(-1, 200), ImPlotFlags_NoFrame))
 									{
 										ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, 0);
-										ImPlot::PlotShadedG("CPU (%)", &ImPlotRingBufferGetterFloat, &cpuUsageBuffer, &ImPlotRingBufferGetterFloatZeroY, &cpuUsageBuffer,
+										RingBufferView ringBufferView(cpuUsageBuffer, cpuUsageBuffer.GetSize() - nbSamplesToDisplay);
+										ImPlot::PlotShadedG("CPU (%)", &ImPlotRingBufferGetterFloat, &ringBufferView, &ImPlotRingBufferGetterFloatZeroY, nullptr,
 										                    cpuUsageBuffer.GetSize());
 										ImPlot::EndPlot();
 									}
@@ -474,7 +490,7 @@ int main(int argc, char** argv)
 								ImGui::PopStyleColor(3);
 								if (opened)
 								{
-									ImPlot::SetNextAxisLimits(ImAxis_X1, 0, cpuUsageBuffer.GetSize(), ImGuiCond_Always);
+									ImPlot::SetNextAxisLimits(ImAxis_X1, 0, nbSamplesToDisplay, ImGuiCond_Always);
 									ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0f, (double)maxRam * 1.3f, ImGuiCond_Always);
 									if (ImPlot::BeginPlot("##RAM_Plot", ImVec2(-1, 200), ImPlotFlags_NoFrame))
 									{
@@ -487,8 +503,9 @@ int main(int argc, char** argv)
 										*/
 										ImPlot::SetupMouseText(ImPlotLocation_SouthEast, ImPlotMouseTextFlags_NoAuxAxes);
 										ImPlot::SetupAxisFormat(ImAxis_Y1, &SizeFormatter);
-										ImPlot::PlotShadedG("RAM", &ImPlotRingBufferGetterUInt64, &ramBuffer, &ImPlotRingBufferGetterUInt64ZeroY, &ramBuffer,
-										                    cpuUsageBuffer.GetSize());
+										RingBufferView ringBufferView(ramBuffer, ramBuffer.GetSize() - nbSamplesToDisplay);
+										ImPlot::PlotShadedG("RAM", &ImPlotRingBufferGetterUInt64, &ringBufferView, &ImPlotRingBufferGetterUInt64ZeroY, nullptr,
+										                    ramBuffer.GetSize());
 										ImPlot::EndPlot();
 									}
 								}
