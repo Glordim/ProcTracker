@@ -36,6 +36,18 @@ void OS::Terminate()
 	CoUninitialize();
 }
 
+bool OS::KillProcess(uint64_t pid)
+{
+	HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, pid);
+	if (hProcess)
+	{
+		TerminateProcess(hProcess, 1);
+		CloseHandle(hProcess);
+		return true;
+	}
+	return false;
+}
+
 std::string OS::GetLastWin32ErrorMessage()
 {
 	LPVOID lpMsgBuf;

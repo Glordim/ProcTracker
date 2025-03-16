@@ -433,6 +433,7 @@ int main(int argc, char** argv)
 
 						if (ImGui::Button(ICON_MDI_SKULL_CROSSBONES " Kill me !"))
 						{
+							OS::KillProcess(process->pid);
 						}
 						ImGui::SameLine(0.0, 15.0f);
 						ImGui::Text("CPU:  %.2f%%", data.cpuUsage);
