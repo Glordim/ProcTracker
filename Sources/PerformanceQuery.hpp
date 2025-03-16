@@ -5,11 +5,6 @@
 #include <utility>
 #include <vector>
 
-#ifdef _WIN32
-#include <Pdh.h>
-#include <PdhMsg.h>
-#endif
-
 struct Process;
 
 struct PerformanceSnapshot
@@ -21,6 +16,7 @@ struct PerformanceSnapshot
 	};
 
 	double   cpuUsage = 0.0f;
+	int64_t  cpuDt = 0;
 	double   time = 0.0f;
 	uint32_t handleCount = 0;
 	uint32_t threadCount = 0;
@@ -33,6 +29,8 @@ struct PerformanceSnapshot
 	uint64_t privateBytes = 0;
 	uint64_t workingSet = 0;
 	uint64_t virtualBytes = 0;
+
+	uint64_t accCyclesTime = 0;
 };
 
 std::pair<double, const char*> AdjustSizeValue(double bytes);
@@ -61,11 +59,10 @@ public:
 	PerformanceSnapshot Retrieve(const SystemSpecs& specs);
 
 #ifdef _WIN32
-	static DWORD FmtForCounter(uint32_t idx);
-	static void  Write(uint32_t idx, PDH_FMT_COUNTERVALUE_ITEM_W const& item, PerformanceSnapshot& res);
+	HANDLE              procHandle;
+	PerformanceSnapshot last;
 
-	std::vector<std::string>  _CounterName;
-	PDH_HQUERY                _pdhQuery;
-	std::vector<PDH_HCOUNTER> _pdhCounter;
+	int64_t  sysDtTime;
+	uint64_t sysTotalTime;
 #endif
 };

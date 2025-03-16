@@ -29,8 +29,10 @@ std::pair<double, const char*> AdjustSizeValue(double bytes)
 Time AdjustTimeValue(double sec)
 {
 	Time res;
-	res.d = sec / 60 / 60 / 24;
-	res.h = sec / 60 / 60;
+	res.d = sec / (60 * 60 * 24);
+	sec -= res.d * (60 * 60 * 24);
+	res.h = sec / (60 * 60);
+	sec -= res.h * (60 * 60);
 	res.m = sec / 60;
 	res.s = fmod(sec, 60);
 

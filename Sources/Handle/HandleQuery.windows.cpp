@@ -197,7 +197,7 @@ void HandleQuery::GenerateHandles(uint64_t pid, std::vector<Handle*>& handles)
 
 	if (status != 0)
 	{
-		fprintf(stderr, "NtQuerySystemInformation failed (status: 0x%08X)\n", status);
+		fprintf(stderr, "NtQuerySystemInformation failed (status: 0x%08X)\n", (uint32_t)status);
 		free(buffer);
 		return;
 	}
@@ -208,10 +208,11 @@ void HandleQuery::GenerateHandles(uint64_t pid, std::vector<Handle*>& handles)
 		const SYSTEM_HANDLE_TABLE_ENTRY_INFO& ntHandle = handleInfo->Handles[i];
 		if (ntHandle.UniqueProcessId == pid)
 		{
-			BYTE  buffer[1024];
-			ULONG returnLength;
+			BYTE     buffer[1024];
+			ULONG    returnLength;
+			uint64_t handleId = ntHandle.HandleValue;
 
-			NTSTATUS status = NtQueryObject((HANDLE)ntHandle.HandleValue, ObjectTypeInformation, buffer, sizeof(buffer), &returnLength);
+			NTSTATUS status = NtQueryObject((HANDLE)handleId, ObjectTypeInformation, buffer, sizeof(buffer), &returnLength);
 			if (status == 0)
 			{
 				OBJECT_TYPE_INFORMATION* pInfo = (OBJECT_TYPE_INFORMATION*)buffer;
@@ -219,7 +220,7 @@ void HandleQuery::GenerateHandles(uint64_t pid, std::vector<Handle*>& handles)
 				auto it = handleFactory.find(pInfo->TypeName.Buffer);
 				if (it != handleFactory.end())
 				{
-					Handle* handle = it->second((HANDLE)ntHandle.HandleValue);
+					Handle* handle = it->second((HANDLE)handleId);
 					if (handle != nullptr)
 					{
 						handles.push_back(handle);

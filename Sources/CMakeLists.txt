@@ -57,3 +57,6 @@ if(WIN32)
 endif()
 
 target_compile_definitions(ProcTracker PUBLIC ${PLATFORM_DEFINE})
+if (WIN32)
+	target_compile_definitions(ProcTracker PUBLIC _CRT_SECURE_NO_WARNINGS)
+endif()
