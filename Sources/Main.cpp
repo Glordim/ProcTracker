@@ -399,7 +399,10 @@ int main(int argc, char** argv)
 				processesLock.lock();
 				for (uint32_t i {0}; i < processDrawers.size(); ++i)
 				{
-					processDrawers[i]->Update();
+					if (update)
+					{
+						processDrawers[i]->Update();
+					}
 					processDrawers[i]->Draw();
 				}
 				processesLock.unlock();
