@@ -216,3 +216,45 @@ void SystemWatcher::StopWatch()
 	_terminateSink->Release();
 	_terminateSink = nullptr;
 }
+
+void SystemWatcher::ListAllProcess(std::set<std::string>& processes, const std::string& filter)
+{
+	processes.clear();
+
+	IEnumWbemClassObject* enumerator = NULL;
+	std::string           request = std::format("SELECT * FROM Win32_Process WHERE Name LIKE '%{}%'", filter);
+	HRESULT               hres = _services->ExecQuery(_bstr_t("WQL"), _bstr_t(request.c_str()), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
+	if (FAILED(hres))
+	{
+		std::cerr << "SystemWatcher: Unable to execute WMI request" << std::endl;
+		return;
+	}
+	IWbemClassObject* pclsObj = NULL;
+	ULONG             uReturn = 0;
+
+	while (enumerator)
+	{
+		hres = enumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
+		if (uReturn == 0)
+		{
+			break;
+		}
+
+		VARIANT varName, varPid;
+		VariantInit(&varName);
+		VariantInit(&varPid);
+		if (SUCCEEDED(pclsObj->Get(L"Name", 0, &varName, 0, 0)) && SUCCEEDED(pclsObj->Get(L"ProcessId", 0, &varPid, 0, 0)))
+		{
+			std::wcout << L"Process : " << varName.bstrVal << L" (PID: " << varPid.uintVal << L")" << std::endl;
+			size_t      len = wcstombs(nullptr, varName.bstrVal, 0);
+			std::string nameUtf8(len, '\0');
+			wcstombs(nameUtf8.data(), varName.bstrVal, len);
+			processes.emplace(nameUtf8);
+			VariantClear(&varName);
+			VariantClear(&varPid);
+		}
+
+		pclsObj->Release();
+	}
+	enumerator->Release();
+}

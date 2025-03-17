@@ -3,6 +3,7 @@
 #include "DearImGui/backends/imgui_impl_sdl3.h"
 #include "DearImGui/backends/imgui_impl_sdlgpu3.h"
 #include "DearImGui/imgui.h"
+#include "DearImGui/imgui_internal.h"
 #include "DearImGui/ImPlot/implot.h"
 #include <SDL3/SDL.h>
 
@@ -77,7 +78,7 @@ void SetupDarkTheme()
 	// colors[ImGuiCol_NavHighlight] = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
 	colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 0.00f, 0.00f, 0.70f);
 	colors[ImGuiCol_NavWindowingDimBg] = ImVec4(1.00f, 0.00f, 0.00f, 0.20f);
-	colors[ImGuiCol_ModalWindowDimBg] = ImVec4(1.00f, 0.00f, 0.00f, 0.35f);
+	colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.35f);
 
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowPadding = ImVec2(8.00f, 8.00f);
@@ -324,8 +325,9 @@ int main(int argc, char** argv)
 				ImGui::TableNextRow();
 				ImGui::TableNextColumn();
 
+				float inputTextWidth = 250.0f;
 				float cellWidth = ImGui::GetContentRegionAvail().x;
-				float contentWidth = ImGui::CalcTextSize(ICON_MDI_TARGET).x * 2 + 350.0f + ImGui::GetStyle().ItemSpacing.x * 2;
+				float contentWidth = ImGui::CalcTextSize(ICON_MDI_TARGET).x * 2 + inputTextWidth + ImGui::GetStyle().ItemSpacing.x * 2;
 				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (cellWidth - contentWidth) * 0.5f);
 
 				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.0f, 0.0f, 1.0f));
@@ -333,7 +335,7 @@ int main(int argc, char** argv)
 				ImGui::TextUnformatted(ICON_MDI_TARGET);
 				ImGui::PopStyleColor();
 				ImGui::SameLine();
-				ImGui::SetNextItemWidth(350.f);
+				ImGui::SetNextItemWidth(inputTextWidth);
 				const char* placeholder = "Enter the process name to track...";
 				const char* hint = placeholder;
 				if (processName[0] != '\0')
@@ -341,7 +343,64 @@ int main(int argc, char** argv)
 					hint = processName;
 				}
 
-				if (ImGui::InputTextWithHint("##ProcessName", hint, processName, sizeof(processName), ImGuiInputTextFlags_EnterReturnsTrue))
+				static std::set<std::string> availableProcesses;
+
+				float inputTextPosX = ImGui::GetCursorScreenPos().x;
+
+				bool focusListingPopup = false;
+				bool editionFinished = false;
+				bool changed = ImGui::InputTextWithHint("##ProcessName", hint, processName, sizeof(processName), ImGuiInputTextFlags_None);
+				if (ImGui::IsItemActive())
+				{
+					ImGui::OpenPopup("ProcessNameListing");
+					if (ImGui::IsKeyPressed(ImGuiKey_DownArrow))
+					{
+						focusListingPopup = true;
+					}
+				}
+				else if (ImGui::IsItemDeactivatedAfterEdit())
+				{
+					editionFinished = true;
+					changed = true;
+				}
+
+				if (changed == true && editionFinished == false)
+				{
+					systemWatcher.ListAllProcess(availableProcesses, processName);
+				}
+
+				if (availableProcesses.empty() == false)
+				{
+					ImGui::SetNextWindowPos(ImVec2(inputTextPosX, ImGui::GetCursorScreenPos().y + ImGui::GetFrameHeight()));
+					ImGui::SetNextWindowSize(ImVec2(inputTextWidth, 0));
+					if (ImGui::BeginPopup("ProcessNameListing", ImGuiWindowFlags_NoFocusOnAppearing))
+					{
+						ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
+						if (focusListingPopup)
+						{
+							ImGui::SetNavCursorVisible(true);
+							ImGui::SetKeyboardFocusHere();
+						}
+						for (const std::string& availableProcess : availableProcesses)
+						{
+							if (ImGui::MenuItem(availableProcess.data()))
+							{
+								ImGui::ClearActiveID();
+								std::strcpy(processName, availableProcess.data());
+								ImGui::CloseCurrentPopup();
+
+								changed = true;
+								editionFinished = true;
+							}
+						}
+						if (editionFinished)
+						{
+							ImGui::CloseCurrentPopup();
+						}
+						ImGui::EndPopup();
+					}
+				}
+				if (changed && editionFinished)
 				{
 					systemWatcher.StopWatch();
 					for (Process* process : processes)

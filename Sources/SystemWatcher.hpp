@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <set>
 #include <string>
 
 #if _WIN32
@@ -16,6 +17,8 @@ public:
 
 	bool Init();
 	void Terminate();
+
+	void ListAllProcess(std::set<std::string>& processes, const std::string& filter);
 
 	bool StartWatch(std::string_view processName, const std::function<void(const std::string&, uint64_t)>& onProcessCreated,
 	                const std::function<void(uint64_t)>& onProcessTerminated);
