@@ -460,6 +460,7 @@ int main(int argc, char** argv)
 				{
 					if (update)
 					{
+						Query::UpdateStatic();
 						processDrawers[i]->Update();
 					}
 					processDrawers[i]->Draw();

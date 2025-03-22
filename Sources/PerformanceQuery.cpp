@@ -2,12 +2,13 @@
 
 #include "PerformanceQuery.hpp"
 
-std::pair<double, const char*> AdjustSizeValue(double bytes)
+std::pair<double, const char*> AdjustSizeValue(uint64_t bytes)
 {
 	uint32_t unitScale {0};
-	while (bytes > 1024)
+	uint64_t bytesVal = bytes;
+	while (bytesVal > 1024)
 	{
-		bytes /= 1024.0;
+		bytesVal /= 1024.0;
 		++unitScale;
 	}
 
@@ -23,7 +24,7 @@ std::pair<double, const char*> AdjustSizeValue(double bytes)
 		default: break;
 	}
 
-	return {bytes, unit};
+	return {bytes / pow(1024.0, unitScale), unit};
 }
 
 Time AdjustTimeValue(double sec)

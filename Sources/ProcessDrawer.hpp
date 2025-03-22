@@ -28,6 +28,10 @@ private:
 	RingBuffer<uint64_t> _ioWriteUsageRingBuffer;
 	uint64_t             _ioMax = 0;
 
+	RingBuffer<uint64_t> _netDownUsageRingBuffer;
+	RingBuffer<uint64_t> _netUpUsageRingBuffer;
+	uint64_t             _netMax = 0;
+
 	Query _performanceQuery;
 
 	Process& _process;

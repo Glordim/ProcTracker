@@ -65,6 +65,8 @@ ProcessDrawer::ProcessDrawer(Process& process)
 , _memoryUsageRingBuffer(256, 0)
 , _ioReadUsageRingBuffer(256, 0)
 , _ioWriteUsageRingBuffer(256, 0)
+, _netDownUsageRingBuffer(256, 0)
+, _netUpUsageRingBuffer(256, 0)
 , _title(std::format("{}", process.pid))
 , _performanceQuery(process)
 {}
@@ -79,15 +81,26 @@ void ProcessDrawer::Update()
 		_memoryMax = _data.privateBytes;
 	}
 
-	_ioReadUsageRingBuffer.PushBack(_data.read.bytesPerSec);
-	if (_data.read.bytesPerSec > _ioMax)
+	_ioReadUsageRingBuffer.PushBack(_data.read.bytes);
+	if (_data.read.bytes > _ioMax)
 	{
-		_ioMax = _data.read.bytesPerSec;
+		_ioMax = _data.read.bytes;
 	}
-	_ioWriteUsageRingBuffer.PushBack(_data.write.bytesPerSec);
-	if (_data.write.bytesPerSec > _ioMax)
+	_ioWriteUsageRingBuffer.PushBack(_data.write.bytes);
+	if (_data.write.bytes > _ioMax)
 	{
-		_ioMax = _data.write.bytesPerSec;
+		_ioMax = _data.write.bytes;
+	}
+
+	_netDownUsageRingBuffer.PushBack(_data.netDown);
+	if (_data.read.bytes > _netMax)
+	{
+		_netMax = _data.read.bytes;
+	}
+	_netUpUsageRingBuffer.PushBack(_data.netUp);
+	if (_data.write.bytes > _netMax)
+	{
+		_netMax = _data.write.bytes;
 	}
 }
 
@@ -184,6 +197,34 @@ bool ProcessDrawer::Draw()
 			}
 			ImGui::EndChild();
 
+			if (ImGui::BeginChild("CollapsablePlotWindowNet", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_None))
+			{
+				ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyle().Colors[ImGuiCol_FrameBg]);
+				ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGui::GetStyle().Colors[ImGuiCol_FrameBgHovered]);
+				ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGui::GetStyle().Colors[ImGuiCol_FrameBgActive]);
+				bool opened = ImGui::CollapsingHeader("Network", ImGuiTreeNodeFlags_DefaultOpen);
+				ImGui::PopStyleColor(3);
+				if (opened)
+				{
+					ImPlot::SetNextAxisLimits(ImAxis_X1, 0, nbSamplesToDisplay, ImGuiCond_Always);
+					ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0f, (double)_netMax * 1.3f, ImGuiCond_Always);
+					if (ImPlot::BeginPlot("##Net_Plot", ImVec2(-1, 200), ImPlotFlags_NoFrame))
+					{
+						ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, 0);
+						ImPlot::SetupMouseText(ImPlotLocation_SouthEast, ImPlotMouseTextFlags_NoAuxAxes);
+						ImPlot::SetupAxisFormat(ImAxis_Y1, &SizeFormatter);
+						RingBufferView readRingBufferView(_netDownUsageRingBuffer, _netDownUsageRingBuffer.GetSize() - nbSamplesToDisplay);
+						ImPlot::PlotShadedG("Down", &ImPlotRingBufferGetterUInt64, &readRingBufferView, &ImPlotRingBufferGetterUInt64ZeroY, nullptr,
+						                    _netDownUsageRingBuffer.GetSize());
+						RingBufferView writeRingBufferView(_netUpUsageRingBuffer, _netUpUsageRingBuffer.GetSize() - nbSamplesToDisplay);
+						ImPlot::PlotShadedG("Up", &ImPlotRingBufferGetterUInt64, &writeRingBufferView, &ImPlotRingBufferGetterUInt64ZeroY, nullptr,
+						                    _netUpUsageRingBuffer.GetSize());
+						ImPlot::EndPlot();
+					}
+				}
+			}
+			ImGui::EndChild();
+
 			ImGui::Text("CPU: %.2f%%", _data.cpuUsage);
 			Time time = AdjustTimeValue(_data.time);
 			if (time.d)
@@ -203,26 +244,30 @@ bool ProcessDrawer::Draw()
 				ImGui::Text("Elapsed Time: %us", time.s);
 			}
 			ImGui::NewLine();
-			ImGui::Text("Handle Count: %u", _data.handleCount);
 			ImGui::Text("Thread Count: %u", _data.threadCount);
 			ImGui::NewLine();
-			std::pair adjustedSize = AdjustSizeValue(_data.read.bytesPerSec);
+			std::pair adjustedSize = AdjustSizeValue(_data.read.bytes);
 			ImGui::Text("Read Data: %.2f %s/s", adjustedSize.first, adjustedSize.second);
-			ImGui::Text("Read Operations: %.2f/s", _data.read.opPerSec);
-			adjustedSize = AdjustSizeValue(_data.write.bytesPerSec);
+			ImGui::Text("Read Operations: %ju/s", _data.read.op);
+			adjustedSize = AdjustSizeValue(_data.write.bytes);
 			ImGui::Text("Write Data: %.2f %s/s", adjustedSize.first, adjustedSize.second);
-			ImGui::Text("Write Operations: %.2f/s", _data.write.opPerSec);
-			adjustedSize = AdjustSizeValue(_data.other.bytesPerSec);
+			ImGui::Text("Write Operations: %juf/s", _data.write.op);
+			adjustedSize = AdjustSizeValue(_data.other.bytes);
 			ImGui::Text("Other Data: %.2f %s/s", adjustedSize.first, adjustedSize.second);
-			ImGui::Text("Other Operations: %.2f/s", _data.other.opPerSec);
+			ImGui::Text("Other Operations: %juf/s", _data.other.op);
 			ImGui::NewLine();
-			ImGui::Text("Page Faults: %.2f/s", _data.pageFaultsPerSec);
+			// ImGui::Text("Page Faults: %.2f/s", _data.pageFaultsPerSec);
 			adjustedSize = AdjustSizeValue(_data.privateBytes);
 			ImGui::Text("Private Memory: %.2f %s", adjustedSize.first, adjustedSize.second);
 			adjustedSize = AdjustSizeValue(_data.workingSet);
 			ImGui::Text("Working Set: %.2f %s", adjustedSize.first, adjustedSize.second);
 			adjustedSize = AdjustSizeValue(_data.virtualBytes);
 			ImGui::Text("Virtual Memory: %.2f %s", adjustedSize.first, adjustedSize.second);
+			ImGui::NewLine();
+			adjustedSize = AdjustSizeValue(_data.netDown);
+			ImGui::Text("Network Down: %.2f %s", adjustedSize.first, adjustedSize.second);
+			adjustedSize = AdjustSizeValue(_data.netUp);
+			ImGui::Text("Network Up: %.2f %s", adjustedSize.first, adjustedSize.second);
 
 			if (ImGui::CollapsingHeader("Handles", ImGuiTreeNodeFlags_DefaultOpen))
 			{
